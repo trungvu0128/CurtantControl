@@ -1235,5 +1235,10 @@ status and optional Tk progress; PIN/config/state preserved. Full bootstrap need
 Publisher script uses local Git credential helper; draft assets checked before
 publication, no token on Pi.97 C# checks and56 Python checks passed; UI renders
 inspected at1280x760/800x480. Python3.7 AST passed. Source version0.11.0.
-Full publish/live GitHub release verification pending. No actual Pi systemd/sudo/
-X11 update transaction run. See docs/UPDATES.md for operational requirements.
+Full0.11.0 Debug/Release and97 checks passed;56 Python checks passed. Native
+ARM32/net8 compatibility, archive/manifests and real updater extraction verified.
+Source673f809 fast-forwarded to default branch; GitHub v0.11.0 release published
+with verified archive/checksum assets. Host-compiled updater tested against public
+GitHub API: prior version sees0.11.0, current version does not offer itself, full
+archive downloads/checksums and worker extraction pass. Release headless shutdown
+check passed. No actual Pi systemd/sudo/X11 update transaction run. See UPDATES.md.
