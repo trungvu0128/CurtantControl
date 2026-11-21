@@ -17,6 +17,20 @@ internal static class UpdateChecks
     });
     public static async Task Run(Func<string, Func<Task>, Task> check, Action<bool,string> assert)
     {
+        await check("a small update matches only its exact baseline and needs both release assets", () =>
+        {
+            var feed = System.Text.Json.Nodes.JsonNode.Parse(ReleaseJson("0.11.2"))!;
+            var assets = feed["assets"]!.AsArray();
+            const string filename = "CurtantControl-Update-v0.11.1-to-v0.11.2-pi-buster-arm.zip";
+            foreach (var name in new[] { filename, filename + ".sha256" })
+                assets.Add(JsonSerializer.SerializeToNode(new { name, size = 1000,
+                    browser_download_url = $"https://github.com/trungvu0128/CurtantControl/releases/download/v0.11.2/{name}" }));
+            assert(GitHubAppUpdates.ParseRelease(feed.ToJsonString(), "0.11.1-buster")?.SmallUpdate?.Name == filename, "Matching small update missed.");
+            assert(GitHubAppUpdates.ParseRelease(feed.ToJsonString(), "0.11.0-buster") is { SmallUpdate: null }, "Wrong baseline offered a small update.");
+            assets.RemoveAt(assets.Count - 1);
+            assert(GitHubAppUpdates.ParseRelease(feed.ToJsonString(), "0.11.1-buster") is { SmallUpdate: null }, "Small update offered without checksum.");
+            return Task.CompletedTask;
+        });
         await check("update feed compares semantic versions, ignores previews and rejects wrong assets/hosts", () =>
         {
             assert(GitHubAppUpdates.ParseRelease(ReleaseJson(), "0.10.5-buster+abc")?.Version == "0.11.0", "New release missed.");

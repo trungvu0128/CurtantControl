@@ -5,8 +5,8 @@ Generated releases and runtime files under `artifacts/` are excluded from Git;
 publish installer archives as release assets rather than committing them.
 
 The app checks GitHub Releases in the background at startup. Developer mode →
-Updates checks/downloads/installs a newer BusterARM32 bundle after verification
-and backup. See [update setup and publishing](docs/UPDATES.md).
+Updates downloads a compatible small patch or the full Buster ARM32 bundle,
+verifies it and backs up installed files. See [update setup and publishing](docs/UPDATES.md).
 
 C# desktop starter using Avalonia 12.1.5, .NET 10, and CommunityToolkit.Mvvm.
 The same source builds for Windows and Raspberry Pi 4.

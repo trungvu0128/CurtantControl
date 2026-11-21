@@ -17,6 +17,7 @@ REPO = 'trungvu0128/CurtantControl'
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('version')
+    parser.add_argument('--small-from', action='append', default=[], help='Attach the verified small update from this installed version')
     args = parser.parse_args()
     if not re.fullmatch(r'\d+\.\d+\.\d+', args.version):
         raise ValueError('Use MAJOR.MINOR.PATCH.')
@@ -31,6 +32,15 @@ def main():
     expected = checksum.read_text().split()
     if expected != [hashlib.sha256(archive.read_bytes()).hexdigest(),archive.name]:
         raise ValueError('Local bundle checksum mismatch.')
+    files = [archive, checksum]
+    for baseline in args.small_from:
+        if not re.fullmatch(r'\d+\.\d+\.\d+', baseline):
+            raise ValueError('Small update baseline must use MAJOR.MINOR.PATCH.')
+        small = root / ('artifacts/updates/CurtantControl-Update-v%s-to-v%s-pi-buster-arm.zip' % (baseline, args.version))
+        small_checksum = Path(str(small) + '.sha256')
+        if small_checksum.read_text().split() != [hashlib.sha256(small.read_bytes()).hexdigest(), small.name]:
+            raise ValueError('Small update checksum mismatch.')
+        files.extend((small, small_checksum))
     credential_env = dict(os.environ, GIT_TERMINAL_PROMPT='0', GCM_INTERACTIVE='Never')
     credential = subprocess.run(['git','credential','fill'],input='protocol=https\nhost=github.com\n\n',
                                 stdout=subprocess.PIPE,stderr=subprocess.PIPE,universal_newlines=True,env=credential_env,check=True)
@@ -67,7 +77,7 @@ def main():
           'Source commit: '+commit)
     release=existing or api('/repos/'+REPO+'/releases','POST',{'tag_name':tag,'target_commitish':commit,'name':'CurtantControl '+args.version,
                                                'body':body,'draft':True,'prerelease':False})
-    for file in (archive,checksum):
+    for file in files:
         print('Uploading '+file.name,flush=True)
         content=file.read_bytes()
         previous=next((asset for asset in release.get('assets',[]) if asset['name']==file.name),None)

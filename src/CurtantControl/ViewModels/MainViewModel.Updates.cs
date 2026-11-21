@@ -23,6 +23,9 @@ public partial class MainViewModel
     public string CurrentAppVersion => _updates.CurrentVersion;
     public string LatestAppVersion => _availableUpdate?.Version ?? "—";
     public string UpdateNotes => _availableUpdate?.Notes ?? "";
+    public string UpdateDownloadSize => _availableUpdate is not { } release ? "" : release.SmallUpdate is { } small
+        ? $"Small update · {small.Size / 1048576d:0.0} MB if compatible"
+        : $"Full update · {release.Size / 1048576d:0.0} MB";
     public string LastUpdateOutcome => _updates.LastInstallMessage ?? "";
     public string UpdateNotification => $"Update {LatestAppVersion} available";
     public bool HasUpdateNotification => _availableUpdate is not null && !_updateDismissed && !IsUpdatesOpen
@@ -39,7 +42,7 @@ public partial class MainViewModel
     private void NotifyUpdateActions()
     {
         foreach (var property in new[] { nameof(CanInstallUpdate), nameof(CanCheckUpdate), nameof(IsUpdateBusy),
-                     nameof(HasUpdateNotification), nameof(UpdateNotification), nameof(LatestAppVersion), nameof(UpdateNotes), nameof(LastUpdateOutcome), nameof(CanSelectScene) })
+                     nameof(HasUpdateNotification), nameof(UpdateNotification), nameof(LatestAppVersion), nameof(UpdateNotes), nameof(UpdateDownloadSize), nameof(LastUpdateOutcome), nameof(CanSelectScene) })
             OnPropertyChanged(property);
     }
     public Task CheckForUpdatesOnStartupAsync() => _startupUpdateTask ??= CheckUpdatesCoreAsync(true);

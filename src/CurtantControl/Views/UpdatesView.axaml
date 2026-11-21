@@ -10,6 +10,7 @@
       <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="New version" Foreground="{DynamicResource MutedBrush}"/><TextBlock Text="{Binding LatestAppVersion}" FontSize="22" Foreground="{DynamicResource TextBrush}"/></StackPanel>
      </Grid>
      <TextBlock Text="{Binding UpdateStatus}" FontSize="18" TextWrapping="Wrap" Foreground="{DynamicResource AccentTextBrush}"/>
+     <TextBlock Text="{Binding UpdateDownloadSize}" Foreground="{DynamicResource MutedBrush}"/>
      <TextBlock Text="{Binding LastUpdateOutcome}" FontSize="14" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"/>
      <ProgressBar IsVisible="{Binding IsUpdateBusy}" IsIndeterminate="True" Height="5"/>
      <ScrollViewer MaxHeight="180"><TextBlock Text="{Binding UpdateNotes}" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}" FontSize="15"/></ScrollViewer>

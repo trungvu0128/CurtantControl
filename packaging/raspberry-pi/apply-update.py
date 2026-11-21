@@ -10,6 +10,15 @@ import subprocess
 import sys
 import tarfile
 import time
+import zipfile
+
+SMALL_NAME = r'CurtantControl-Update-v(\d+\.\d+\.\d+)-to-v(\d+\.\d+\.\d+)-pi-buster-arm\.zip'
+SMALL_FILES = {'CurtantControl.dll', 'CurtantControl.deps.json', 'CurtantControl.runtimeconfig.json',
+               'VERSION.txt', 'apply-update.py'}
+
+
+class IncompatibleUpdate(ValueError):
+    pass
 
 
 def file_hash(path):
@@ -30,14 +39,18 @@ def report(path, phase, message, version):
     print(phase + ': ' + message, flush=True)
 
 
+def verify_checksum(archive):
+    checksum = Path(str(archive) + '.sha256').read_text(encoding='utf-8')
+    match = re.fullmatch(r'([a-fA-F0-9]{64})  ' + re.escape(archive.name) + r'\r?\n?', checksum)
+    if not match or file_hash(archive) != match.group(1).lower():
+        raise ValueError('Update checksum verification failed.')
+
+
 def extract_verified(archive, version, job):
     expected_name = 'CurtantControl-Final-v%s-pi-buster-arm.tar.gz' % version
     if archive.name != expected_name:
         raise ValueError('Unexpected update filename.')
-    checksum = Path(str(archive) + '.sha256').read_text(encoding='utf-8')
-    match = re.fullmatch(r'([a-fA-F0-9]{64})  ' + re.escape(expected_name) + r'\r?\n?', checksum)
-    if not match or file_hash(archive) != match.group(1).lower():
-        raise ValueError('Update checksum verification failed.')
+    verify_checksum(archive)
     top = 'CurtantControl-Final-v%s-pi-buster-arm' % version
     destination = job / 'extracted'
     if destination.exists():
@@ -79,6 +92,98 @@ def extract_verified(archive, version, job):
     return base
 
 
+def verify_installed(app_dir, before):
+    for name, expected in before.items():
+        path = PurePosixPath(name)
+        if (path.is_absolute() or not path.parts or '..' in path.parts or '\\' in name
+                or not re.fullmatch(r'[a-f0-9]{64}', expected)):
+            raise ValueError('Invalid small update manifest.')
+        installed = app_dir.joinpath(*path.parts)
+        if not installed.is_file() or installed.is_symlink() or file_hash(installed) != expected:
+            raise IncompatibleUpdate('The installed files differ from the small update baseline.')
+
+
+def prepare_small(archive, version, app_dir):
+    match = re.fullmatch(SMALL_NAME, archive.name)
+    if not match or match[2] != version or tuple(map(int, version.split('.'))) <= tuple(map(int, match[1].split('.'))):
+        raise ValueError('Unexpected small update filename or version.')
+    verify_checksum(archive)
+    with zipfile.ZipFile(str(archive)) as package:
+        names = package.namelist()
+        if (len(names) != len(set(names)) or set(names) - SMALL_FILES - {'patch.json'}
+                or sum(entry.file_size for entry in package.infolist()) > 10 * 1024 * 1024):
+            raise ValueError('Unexpected small update contents.')
+        manifest = json.loads(package.read('patch.json'))
+        before, after = manifest['before'], manifest['after']
+        if (manifest['from'] != match[1] or manifest['to'] != version
+                or set(after) != set(names) - {'patch.json'} or not set(after) <= set(before)
+                or not {'CurtantControl.dll', 'VERSION.txt'} <= set(after)
+                or not {'CurtantControl', 'libcoreclr.so'} <= set(before)):
+            raise ValueError('Invalid small update manifest.')
+        files = {name: package.read(name) for name in after}
+        if any(hashlib.sha256(content).hexdigest() != after[name] for name, content in files.items()):
+            raise ValueError('Small update file checksum failed.')
+        if files['VERSION.txt'].decode('utf-8').strip() != version + '-buster':
+            raise ValueError('Small update payload version mismatch.')
+    verify_installed(app_dir, before)
+    return before, files
+
+
+def install_small(app_dir, patch):
+    import tempfile
+
+    before, files = patch
+    verify_installed(app_dir, before)
+    if any(exe.resolve() == app_dir / 'CurtantControl' for exe in running_executables()):
+        raise ValueError('Close CurtantControl before applying this update.')
+    backup = Path(tempfile.mkdtemp(prefix='app-files-backup-', dir=str(app_dir.parent)))
+    stage = backup / 'staged'
+    stage.mkdir()
+    for name, content in files.items():
+        current = app_dir / name
+        shutil.copy2(str(current), str(backup / name))
+        with (stage / name).open('wb') as output:
+            output.write(content)
+            output.flush()
+            os.fsync(output.fileno())
+        shutil.copymode(str(current), str(stage / name))
+    replaced = []
+    try:
+        for name in sorted(files, key=lambda name: name == 'VERSION.txt'):
+            os.replace(str(stage / name), str(app_dir / name))
+            replaced.append(name)
+    except OSError:
+        for name in reversed(replaced):
+            os.replace(str(backup / name), str(app_dir / name))
+        raise
+    stage.rmdir()
+    print('Previous files saved in ' + str(backup), flush=True)
+    return backup
+
+
+def running_executables():
+    for info in Path('/proc').iterdir():
+        if info.name.isdigit():
+            try:
+                yield Path(os.readlink(str(info / 'exe')))
+            except OSError:
+                pass
+
+
+def lock_app_startup():
+    import fcntl
+
+    path = Path.home() / '.cache/curtantcontrol-startup.lock'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle = path.open('a')
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        raise ValueError('An app launch or update is already in progress.')
+    return handle
+
+
 def wait_parent(pid, seconds=30, cancelled=None):
     def check_cancelled():
         if cancelled is not None and cancelled.exists():
@@ -113,6 +218,15 @@ def install(base, environment):
 
 
 def verify_device(base):
+    verify_platform()
+    for name in ('CurtantControl', 'libcoreclr.so', 'libSkiaSharp.so', 'libHarfBuzzSharp.so'):
+        result = subprocess.run(['ldd', str(base / 'payloads/buster-arm' / name)], stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, universal_newlines=True, timeout=15)
+        if result.returncode or 'not found' in result.stdout:
+            raise ValueError('A required system library is missing. Run the full installer manually.')
+
+
+def verify_platform():
     if subprocess.check_output(['dpkg', '--print-architecture'], universal_newlines=True).strip() != 'armhf':
         raise ValueError('This update requires a 32-bit Pi OS.')
     if not Path('/proc/device-tree/model').read_text().startswith('Raspberry Pi 4'):
@@ -120,11 +234,21 @@ def verify_device(base):
     text = Path('/etc/os-release').read_text()
     if not re.search(r'(?m)^VERSION_ID="?10"?$', text) or not re.search(r'(?m)^ID="?(raspbian|debian)"?$', text):
         raise ValueError('This update requires Pi Buster.')
-    for name in ('CurtantControl', 'libcoreclr.so', 'libSkiaSharp.so', 'libHarfBuzzSharp.so'):
-        result = subprocess.run(['ldd', str(base / 'payloads/buster-arm' / name)], stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, universal_newlines=True, timeout=15)
-        if result.returncode or 'not found' in result.stdout:
-            raise ValueError('A required system library is missing. Run the full installer manually.')
+
+
+def app_directory():
+    return Path.home() / '.local/share/CurtantControl/app'
+
+
+def manual_small(archive):
+    match = re.fullmatch(SMALL_NAME, archive.name)
+    if not match or os.geteuid() == 0:
+        raise ValueError('Run the small update archive as desktop user pi.')
+    verify_platform()
+    with lock_app_startup():
+        app_dir = app_directory()
+        install_small(app_dir, prepare_small(archive, match[2], app_dir))
+    print('Small update installed. Open CurtantControl from the desktop.', flush=True)
 
 
 def main():
@@ -137,11 +261,18 @@ def main():
     if os.geteuid() == 0 or subprocess.check_output(['id', '-un'], universal_newlines=True).strip() != 'pi':
         raise ValueError('Updates must run as desktop user pi.')
     can_restart = False
+    small = archive.suffix == '.zip'
+    startup_lock = None
     try:
         report(status, 'preparing', 'Verifying update files', version)
-        subprocess.run(['/usr/bin/sudo', '-n', '-v'], check=True, timeout=10)
-        base = extract_verified(archive, version, archive.parent)
-        verify_device(base)
+        if small:
+            startup_lock = lock_app_startup()
+            verify_platform()
+            patch = prepare_small(archive, version, app_directory())
+        else:
+            subprocess.run(['/usr/bin/sudo', '-n', '-v'], check=True, timeout=10)
+            base = extract_verified(archive, version, archive.parent)
+            verify_device(base)
         report(status, 'ready', 'Ready; waiting for the current app to close', version)
         wait_parent(pid, cancelled=archive.parent / 'cancelled')
         can_restart = True
@@ -151,13 +282,19 @@ def main():
                              stdin=subprocess.DEVNULL, start_new_session=True)
         except OSError:
             pass
-        install(base, os.environ)
+        if small:
+            install_small(app_directory(), patch)
+        else:
+            install(base, os.environ)
         report(status, 'complete', 'Update installed successfully', version)
     except Exception as error:
-        report(status, 'failed', str(error), version)
+        report(status, 'incompatible' if isinstance(error, IncompatibleUpdate) and not can_restart else 'failed', str(error), version)
         if not can_restart:
             return 1
-    app = Path.home() / '.local/share/CurtantControl/app/CurtantControl'
+    finally:
+        if startup_lock is not None:
+            startup_lock.close()
+    app = app_directory() / 'CurtantControl'
     if app.is_file():
         os.chdir(str(app.parent))
         # Keep the new app outside keycheck.service's cgroup. Restarting keycheck
@@ -168,7 +305,12 @@ def main():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 3 and sys.argv[1] == '--progress':
+    if len(sys.argv) == 3 and sys.argv[1] == '--apply-small':
+        try:
+            manual_small(Path(sys.argv[2]).resolve())
+        except (OSError, ValueError) as error:
+            sys.exit(str(error))
+    elif len(sys.argv) == 3 and sys.argv[1] == '--progress':
         try:
             import importlib.util
             spec = importlib.util.spec_from_file_location('keycheck_overlay', '/home/pi/r1/key_check_new.py')

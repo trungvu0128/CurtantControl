@@ -13,7 +13,8 @@ using System.Threading.Tasks;
 
 namespace CurtantControl.Services;
 
-public sealed record AppRelease(string Version, string Notes, Uri Archive, Uri Checksum, long Size);
+public sealed record UpdateAsset(string Name, Uri Archive, Uri Checksum, long Size);
+public sealed record AppRelease(string Version, string Notes, Uri Archive, Uri Checksum, long Size, UpdateAsset? SmallUpdate = null);
 public interface IAppUpdateService
 {
     string CurrentVersion { get; }
@@ -92,8 +93,18 @@ public sealed class GitHubAppUpdates(HttpClient? client = null) : IAppUpdateServ
         var version = root.GetProperty("tag_name").GetString() ?? "";
         var numeric = ParseVersion(version);
         if (version != "v" + numeric) throw new InvalidDataException("Release tags must use vMAJOR.MINOR.PATCH.");
-        if (numeric <= ParseVersion(current)) return null;
+        var installed = ParseVersion(current);
+        if (numeric <= installed) return null;
         var name = $"CurtantControl-Final-v{numeric}-pi-buster-arm.tar.gz";
+        var full = FindAsset(root, version, name, 200L * 1024 * 1024)
+            ?? throw new InvalidDataException("This release does not contain a complete Pi Buster update and checksum.");
+        var smallName = $"CurtantControl-Update-v{installed}-to-v{numeric}-pi-buster-arm.zip";
+        var small = FindAsset(root, version, smallName, 10L * 1024 * 1024);
+        var notes = root.TryGetProperty("body", out var body) ? body.GetString() ?? "" : "";
+        return new(numeric.ToString(), notes.Length > 4000 ? notes[..4000] : notes, full.Archive, full.Checksum, full.Size, small);
+    }
+    private static UpdateAsset? FindAsset(JsonElement root, string version, string name, long maxSize)
+    {
         Uri? archive = null, checksum = null;
         long size = 0;
         foreach (var asset in root.GetProperty("assets").EnumerateArray())
@@ -105,10 +116,8 @@ public sealed class GitHubAppUpdates(HttpClient? client = null) : IAppUpdateServ
             if (assetName == name) { if (archive is not null) throw new InvalidDataException("Duplicate release asset."); archive = url; size = asset.GetProperty("size").GetInt64(); }
             else { if (checksum is not null) throw new InvalidDataException("Duplicate checksum asset."); checksum = url; }
         }
-        if (archive is null || checksum is null || size <= 0 || size > 200L * 1024 * 1024)
-            throw new InvalidDataException("This release does not contain a complete Pi Buster update and checksum.");
-        var notes = root.TryGetProperty("body", out var body) ? body.GetString() ?? "" : "";
-        return new(numeric.ToString(), notes.Length > 4000 ? notes[..4000] : notes, archive, checksum, size);
+        return archive is not null && checksum is not null && size > 0 && size <= maxSize
+            ? new(name, archive, checksum, size) : null;
     }
     private static bool TrustedAsset(Uri uri, string tag, string name) => uri.Scheme == "https" && uri.Host == "github.com"
         && uri.UserInfo.Length == 0 && uri.Query.Length == 0 && uri.Fragment.Length == 0
@@ -133,17 +142,22 @@ public sealed class GitHubAppUpdates(HttpClient? client = null) : IAppUpdateServ
     }
     public async Task<string> DownloadAsync(AppRelease release, string directory, IProgress<string> progress, CancellationToken token)
     {
-        var tag = "v" + ParseVersion(release.Version);
         var filename = $"CurtantControl-Final-v{ParseVersion(release.Version)}-pi-buster-arm.tar.gz";
-        if (!TrustedAsset(release.Archive, tag, filename) || !TrustedAsset(release.Checksum, tag, filename + ".sha256"))
+        return await DownloadAssetAsync(release.Version, new(filename, release.Archive, release.Checksum, release.Size), directory, progress, token).ConfigureAwait(false);
+    }
+    private async Task<string> DownloadAssetAsync(string version, UpdateAsset asset, string directory, IProgress<string> progress, CancellationToken token)
+    {
+        var tag = "v" + ParseVersion(version);
+        var filename = asset.Name;
+        if (!Regex.IsMatch(filename, "^[a-zA-Z0-9.-]+$") || !TrustedAsset(asset.Archive, tag, filename) || !TrustedAsset(asset.Checksum, tag, filename + ".sha256"))
             throw new InvalidDataException("Untrusted update address.");
         Directory.CreateDirectory(directory);
-        using var checksumResponse = await GetAsync(release.Checksum, token).ConfigureAwait(false);
+        using var checksumResponse = await GetAsync(asset.Checksum, token).ConfigureAwait(false);
         checksumResponse.EnsureSuccessStatusCode();
         var checksum = await checksumResponse.Content.ReadAsStringAsync(token).ConfigureAwait(false);
         var match = Regex.Match(checksum, "\\A([a-fA-F0-9]{64})  " + Regex.Escape(filename) + "\\r?\\n?\\z");
         if (!match.Success) throw new InvalidDataException("Invalid update checksum.");
-        using var response = await GetAsync(release.Archive, token).ConfigureAwait(false);
+        using var response = await GetAsync(asset.Archive, token).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         var path = Path.Combine(directory, filename);
         try
@@ -160,13 +174,13 @@ public sealed class GitHubAppUpdates(HttpClient? client = null) : IAppUpdateServ
                     var count = await input.ReadAsync(buffer, token).ConfigureAwait(false);
                     if (count == 0) break;
                     total += count;
-                    if (total > release.Size || total > 200L * 1024 * 1024) throw new InvalidDataException("Update size mismatch.");
+                    if (total > asset.Size || total > 200L * 1024 * 1024) throw new InvalidDataException("Update size mismatch.");
                     hash.AppendData(buffer, 0, count);
                     await output.WriteAsync(buffer.AsMemory(0, count), token).ConfigureAwait(false);
-                    var percent = (int)(100 * total / release.Size);
+                    var percent = (int)(100 * total / asset.Size);
                     if (percent != previous) { progress.Report($"Downloading update… {percent}%"); previous = percent; }
                 }
-                if (total != release.Size || !CryptographicOperations.FixedTimeEquals(hash.GetHashAndReset(), Convert.FromHexString(match.Groups[1].Value)))
+                if (total != asset.Size || !CryptographicOperations.FixedTimeEquals(hash.GetHashAndReset(), Convert.FromHexString(match.Groups[1].Value)))
                     throw new InvalidDataException("Update checksum or size verification failed.");
                 output.Flush(true);
             }
@@ -178,12 +192,27 @@ public sealed class GitHubAppUpdates(HttpClient? client = null) : IAppUpdateServ
     public async Task PrepareInstallAsync(AppRelease release, IProgress<string> progress, CancellationToken token)
     {
         if (!CanInstall) throw new PlatformNotSupportedException("Install updates from your Raspberry Pi Buster desktop.");
+        if (release.SmallUpdate is not null)
+        {
+            if (await PrepareAssetAsync(release, release.SmallUpdate, progress, token).ConfigureAwait(false)) return;
+            progress.Report("This installation needs the full update. Downloading it now…");
+        }
+        if (!await PrepareAssetAsync(release, null, progress, token).ConfigureAwait(false))
+            throw new IOException("The full update does not match this installation.");
+    }
+    private async Task<bool> PrepareAssetAsync(AppRelease release, UpdateAsset? small, IProgress<string> progress, CancellationToken token)
+    {
         var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache", "CurtantControl", "updates", Guid.NewGuid().ToString("N"));
         string archive;
         using (var downloadTimeout = CancellationTokenSource.CreateLinkedTokenSource(token))
         {
             downloadTimeout.CancelAfter(TimeSpan.FromMinutes(10));
-            try { archive = await DownloadAsync(release, directory, progress, downloadTimeout.Token).ConfigureAwait(false); }
+            try
+            {
+                archive = small is null
+                    ? await DownloadAsync(release, directory, progress, downloadTimeout.Token).ConfigureAwait(false)
+                    : await DownloadAssetAsync(release.Version, small, directory, progress, downloadTimeout.Token).ConfigureAwait(false);
+            }
             catch (OperationCanceledException) when (!token.IsCancellationRequested) { throw new TimeoutException("Update download timed out. Please try again."); }
         }
         progress.Report("Verifying and preparing update…");
@@ -213,7 +242,8 @@ public sealed class GitHubAppUpdates(HttpClient? client = null) : IAppUpdateServ
                 {
                     using var state = JsonDocument.Parse(await File.ReadAllTextAsync(status, token).ConfigureAwait(false));
                     var phase = state.RootElement.GetProperty("phase").GetString();
-                    if (phase == "ready") { ready = true; return; }
+                    if (phase == "ready") { ready = true; return true; }
+                    if (phase == "incompatible" && small is not null) return false;
                     if (phase == "failed") throw new IOException(state.RootElement.GetProperty("message").GetString());
                 }
                 await Task.Delay(500, token).ConfigureAwait(false);

@@ -38,6 +38,51 @@ def bundle(job, extra=None, tamper=False):
 
 
 class UpdateWorkerTests(unittest.TestCase):
+    def test_small_update_touches_only_changed_app_files_and_restores_on_write_failure(self):
+        from zipfile import ZipFile
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            app = root / 'app'
+            app.mkdir()
+            changes = {'CurtantControl.dll': b'new app', 'VERSION.txt': b'0.11.1-buster\n'}
+            original = {'CurtantControl': b'exe', 'libcoreclr.so': b'runtime',
+                        'CurtantControl.dll': b'old app', 'VERSION.txt': b'0.11.0-buster\n'}
+            for name, content in original.items():
+                (app / name).write_bytes(content)
+            (app / 'photobooth.json').write_bytes(b'local config')
+            archive = root / 'CurtantControl-Update-v0.11.0-to-v0.11.1-pi-buster-arm.zip'
+            manifest = {'from': '0.11.0', 'to': '0.11.1',
+                        'before': {name: updates.file_hash(app / name) for name in original},
+                        'after': {name: hashlib.sha256(content).hexdigest() for name, content in changes.items()}}
+            with ZipFile(archive, 'w') as package:
+                package.writestr('patch.json', json.dumps(manifest))
+                for name, content in changes.items():
+                    package.writestr(name, content)
+            Path(str(archive) + '.sha256').write_text(updates.file_hash(archive) + '  ' + archive.name + '\n')
+            (app / 'libcoreclr.so').write_bytes(b'different runtime')
+            with self.assertRaises(updates.IncompatibleUpdate):
+                updates.prepare_small(archive, '0.11.1', app)
+            (app / 'libcoreclr.so').write_bytes(original['libcoreclr.so'])
+            prepared = updates.prepare_small(archive, '0.11.1', app)
+            replace = updates.os.replace
+
+            def fail_version(source, destination):
+                if Path(source).parent.name == 'staged' and Path(destination).name == 'VERSION.txt':
+                    raise PermissionError('Failed to replace version')
+                replace(source, destination)
+
+            with patch.object(updates, 'running_executables', return_value=[]):
+                with patch.object(updates.os, 'replace', side_effect=fail_version):
+                    with self.assertRaises(PermissionError):
+                        updates.install_small(app, prepared)
+                self.assertEqual((app / 'CurtantControl.dll').read_bytes(), original['CurtantControl.dll'])
+                backup = updates.install_small(app, prepared)
+            self.assertEqual({p.name for p in backup.iterdir()}, set(changes))
+            for name, content in dict(original, **changes).items():
+                self.assertEqual((app / name).read_bytes(), content)
+            self.assertEqual((app / 'photobooth.json').read_bytes(), b'local config')
+
     def test_device_and_missing_library_checks_fail_before_handoff(self):
         def read(path,*args,**kwargs):
             return 'Raspberry Pi 4 Model B' if path.name=='model' else 'ID=raspbian\nVERSION_ID="10"\n'

@@ -1,4 +1,4 @@
-# GitHub updates (0.11.0)
+# GitHub updates
 
 The app checks `trungvu0128/CurtantControl` GitHub Releases once each time its
 window opens. The HTTP check runs asynchronously alongside camera startup, with
@@ -7,6 +7,13 @@ Only a newer non-draft/non-prerelease `vMAJOR.MINOR.PATCH` release with the exac
 BusterARM32 full bundle and its SHA256 asset is offered. Source branch pushes
 alone do not create an update.
 
+From 0.11.1, Updates prefers a small ZIP named for the installed and target
+versions when one is attached to the release. The worker verifies the installed
+file hashes before closing the app. If the baseline differs, the app shows the
+fallback and downloads the full bundle. A corrupt download stops the attempt.
+Small updates save the replaced files in `app-files-backup-*` beside the app
+folder and restore replaced files if a write fails. They run as `pi` without sudo.
+
 User mode shows a dismissible new-version notice. Developer mode → **Updates**
 shows installed/new versions, release notes, **Check again**, and **Download &
 install**. User mode cannot install. Cancelling or download/preparation failure
@@ -14,8 +21,19 @@ keeps the current app. Camera/scene commands are blocked while the modal is open
 
 ## First installation
 
-Install the complete0.11.0+ bundle once with `sh install.sh`. The old three-file
-small ZIP cannot bootstrap the external updater helper. No GitHub token or Git
+Install the complete 0.11.1+ bundle with `sh install.sh` for a new device.
+An existing matching 0.11.0 installation can use the 0.11.1 small ZIP. Download
+the ZIP and its `.sha256`, close the app, then run on the Pi:
+
+```sh
+patch=CurtantControl-Update-v0.11.0-to-v0.11.1-pi-buster-arm.zip
+sha256sum -c "$patch.sha256" &&
+python3 -m zipfile -e "$patch" update-0.11.1 &&
+python3 update-0.11.1/apply-update.py --apply-small "$patch"
+```
+
+Open the app from its desktop shortcut. Future compatible updates can be
+installed in the app. No GitHub token or Git
 installation is needed on the Pi; the repository and its releases are public.
 
 Automatic installation targets Pi4, Raspbian/Debian10 Buster ARM32 and desktop
@@ -75,6 +93,18 @@ Package/source version comparison ignores the `-buster` build suffix and Git
 revision. Do not publish an archive built from a different source commit.
 Checksums provide corruption detection; trust is the chosen GitHub repository
 and HTTPS, not a separate offline signing key.
+
+To include a small update, keep the extracted full builds for both versions in
+`artifacts/bundles` and run the following in place of the publish command above:
+
+```powershell
+python scripts/build-small-update.py 0.11.0 0.11.1
+python scripts/publish-github-release.py 0.11.1 --small-from 0.11.0
+```
+
+The patch builder compares full builds and includes only changed app files.
+Publish the full bundle alone if runtime, assets, keycheck or installer changes
+require it.
 
 Host tests cover feed filtering/versioning, HTTP/checksum failures, startup
 single-check/nonblocking behavior, Developer gates, cancellation, prepare-before-

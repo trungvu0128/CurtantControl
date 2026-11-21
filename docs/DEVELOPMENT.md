@@ -507,3 +507,9 @@ existing full backup/setup. Cancellation marker and unit stop prevent delayed
 installation after cancel. Documented limits, diagnostics and publishing steps:
 UPDATES.md. Publisher uses local Git credentials, uploads draft assets and checks
 server digests before publishing; never embeds a token in the Pi app.
+
+From 0.11.1, GitHubAppUpdates selects a checksummed ZIP for the exact installed
+version when offered. The worker validates the baseline before reporting ready,
+then backs up and replaces changed files after the app exits. A baseline mismatch
+falls back to the full bundle. `scripts/build-small-update.py` compares two builds
+and refuses changes outside the app patch set. See UPDATES.md.

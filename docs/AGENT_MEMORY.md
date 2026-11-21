@@ -1242,3 +1242,11 @@ with verified archive/checksum assets. Host-compiled updater tested against publ
 GitHub API: prior version sees0.11.0, current version does not offer itself, full
 archive downloads/checksums and worker extraction pass. Release headless shutdown
 check passed. No actual Pi systemd/sudo/X11 update transaction run. See UPDATES.md.
+
+0.11.1 adds version-pair small updates. Builder compares both full bundles and
+includes changed app files only. Worker verifies installed hashes, takes file
+backups and replaces the changed files after app exit. Baseline mismatches use
+the full bundle before shutdown. Manual bootstrap for 0.11.0 uses the helper
+inside the small ZIP. Debug/Release Buster ARM32 build, 98 C# checks, 57 Python
+checks, Python 3.7 syntax and patch application to a copy of 0.11.0 passed. The
+952055-byte ZIP preserves customized settings in that check. No physical Pi test.
