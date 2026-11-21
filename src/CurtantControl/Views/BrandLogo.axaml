@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:CurtantControl.Views"
+             x:Class="CurtantControl.Views.BrandLogo" IsHitTestVisible="False"
+             AutomationProperties.Name="123Click Photo Booth">
+    <UserControl.Styles>
+        <Style Selector="Canvas#LogoCanvas">
+            <Setter Property="Width" Value="2172" /><Setter Property="Height" Value="724" />
+        </Style>
+        <Style Selector="local|BrandLogo.tight Canvas#LogoCanvas">
+            <Setter Property="Width" Value="1720" /><Setter Property="Height" Value="410" />
+        </Style>
+        <Style Selector="local|BrandLogo.tight Image#LogoImage">
+            <Setter Property="Canvas.Left" Value="-220" /><Setter Property="Canvas.Top" Value="-148" />
+        </Style>
+    </UserControl.Styles>
+    <Viewbox Stretch="Uniform">
+        <Canvas x:Name="LogoCanvas" ClipToBounds="True">
+            <Image x:Name="LogoImage" Width="2172" Height="724"
+                   Source="avares://CurtantControl/Assets/Brand/123click-logo.png" />
+        </Canvas>
+    </Viewbox>
+</UserControl>

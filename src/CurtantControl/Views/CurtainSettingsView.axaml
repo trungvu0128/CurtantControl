@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CurtantControl.ViewModels"
+             xmlns:services="using:CurtantControl.Services" xmlns:views="using:CurtantControl.Views"
+             x:Class="CurtantControl.Views.CurtainSettingsView"
+             x:DataType="vm:CurtainSettingsViewModel">
+    <UserControl.Styles>
+        <Style Selector="Button">
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="24,16" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="MinHeight" Value="56" />
+        </Style>
+    </UserControl.Styles>
+    <Viewbox Stretch="Uniform">
+        <Grid Width="1200" Height="900" Margin="32" RowDefinitions="80,*,80" RowSpacing="24">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="24">
+                <views:RazrBadge Text="CAMERA RAZR I" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <views:BrandLogo Grid.Column="2" Classes="tight" Width="200" Height="54" VerticalAlignment="Center" />
+            </Grid>
+
+            <Border Grid.Row="1" Width="820" HorizontalAlignment="Center" Background="{DynamicResource PanelBrush}" CornerRadius="24" Padding="24">
+                <Grid RowDefinitions="Auto,30,*" RowSpacing="12">
+                    <StackPanel Spacing="6" IsVisible="{Binding IsRelayOrderVisible}">
+                        <TextBlock Text="RELAY LAYERS · NEAREST TO FARTHEST FROM CAMERA" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AccentTextBrush}" />
+                        <ComboBox ItemsSource="{Binding RelayOrders}" SelectedItem="{Binding SelectedRelayOrder, Mode=TwoWay}" HorizontalAlignment="Stretch" MinHeight="48" CornerRadius="12" AutomationProperties.Name="Relay layer order">
+                            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:RelayLayerOrderChoice"><TextBlock Text="{Binding Name}" FontSize="17" /></DataTemplate></ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="Save applies the order to the next START. No motor moves when saving." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
+                    </StackPanel>
+                    <TextBlock Grid.Row="1" Text="BACKGROUND COLORS · BACKGROUND 1 → 5" FontSize="12" Foreground="{DynamicResource AccentTextBrush}" LetterSpacing="1" />
+                    <ItemsControl Grid.Row="2" ItemsSource="{Binding DisplaySlots}">
+                        <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CurtainLayerSlot">
+                            <StackPanel Spacing="6" Margin="0,0,0,12">
+                                <TextBlock Text="{Binding Position}" Foreground="{DynamicResource SecondaryBrush}" FontSize="14" />
+                                <ComboBox ItemsSource="{Binding Colors}" SelectedItem="{Binding SelectedColor, Mode=TwoWay}"
+                                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MinHeight="56" CornerRadius="12">
+                                    <ComboBox.ItemTemplate><DataTemplate x:DataType="services:CurtainColorPreset">
+                                        <StackPanel Orientation="Horizontal" Spacing="16">
+                                            <Border Background="{Binding Color}" Width="26" Height="26" CornerRadius="8" />
+                                            <TextBlock Text="{Binding Name}" FontSize="20" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </DataTemplate></ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                <StackPanel VerticalAlignment="Center" Spacing="8" Margin="0,0,24,0">
+                    <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ErrorBrush}" FontSize="14" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Notice}" Foreground="{DynamicResource SuccessBrush}" FontSize="16" FontWeight="Bold" />
+                    <TextBlock Text="Save applies colors and layer order. Curtains will not move." Foreground="{DynamicResource MutedBrush}" FontSize="14" />
+                </StackPanel>
+                <Button Grid.Column="1" Command="{Binding CancelCommand}" Content="Cancel" VerticalAlignment="Center" />
+                <Button Grid.Column="2" Command="{Binding SaveCommand}" Content="Save" Background="#F2AA7E" Foreground="#19191F"
+                        VerticalAlignment="Center" MinWidth="170" />
+            </Grid>
+        </Grid>
+    </Viewbox>
+</UserControl>

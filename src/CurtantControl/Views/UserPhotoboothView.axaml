@@ -1,0 +1,112 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:views="using:CurtantControl.Views" xmlns:vm="using:CurtantControl.ViewModels" x:Class="CurtantControl.Views.UserPhotoboothView" x:DataType="vm:MainViewModel"
+ Classes.developer="{Binding IsDeveloperScreenVisible}" Foreground="{DynamicResource TextBrush}">
+ <UserControl.Styles>
+  <Style Selector="UserControl"><Setter Property="Background" Value="{DynamicResource PageBrush}" /></Style>
+  <Style Selector="UserControl.developer"><Setter Property="Background" Value="{DynamicResource PageBrush}" /></Style>
+  <Style Selector="Grid.photobooth"><Setter Property="Height" Value="680" /></Style>
+  <Style Selector="Grid.photobooth.developer"><Setter Property="Height" Value="880" /></Style>
+  <Style Selector="Button.photo">
+   <Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="VerticalAlignment" Value="Stretch" />
+   <Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalContentAlignment" Value="Center" />
+   <Setter Property="Foreground" Value="White" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="FontSize" Value="32" />
+   <Setter Property="CornerRadius" Value="28" /><Setter Property="BorderBrush" Value="#40000000" /><Setter Property="BorderThickness" Value="3" />
+   <Setter Property="Template"><ControlTemplate>
+    <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" BoxShadow="0 5 8 0 #B0000000" ClipToBounds="True">
+     <Grid><Border CornerRadius="24" IsHitTestVisible="False"><Border.Background>
+      <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#55FFFFFF" Offset="0" /><GradientStop Color="#00FFFFFF" Offset="0.22" /><GradientStop Color="#18000000" Offset="0.8" /><GradientStop Color="#55000000" Offset="1" /></LinearGradientBrush>
+     </Border.Background></Border>
+     <ContentPresenter Name="PhotoContentPresenter" Background="Transparent" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="14,4" />
+     </Grid>
+    </Border>
+   </ControlTemplate></Setter>
+  </Style>
+  <Style Selector="Button.photo.selected"><Setter Property="BorderBrush" Value="#FF3038" /><Setter Property="BorderThickness" Value="4" /></Style>
+  <Style Selector="Button.photo:pointerover"><Setter Property="Opacity" Value="0.9" /></Style>
+  <Style Selector="Button.photo:pressed"><Setter Property="Opacity" Value="0.75" /></Style>
+  <Style Selector="Button.photo:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+  <Style Selector="Button.userReconnect:pointerover /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#BDD6FA" /><Setter Property="Foreground" Value="#202334" /></Style>
+  <Style Selector="Button.userReconnect:pressed /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#9CBDEA" /><Setter Property="Foreground" Value="#202334" /></Style>
+ </UserControl.Styles>
+ <Grid>
+ <ThemeVariantScope RequestedThemeVariant="{Binding PhotoboothTheme}">
+ <Viewbox Stretch="Uniform">
+ <Grid Classes="photobooth" Classes.developer="{Binding IsDeveloperScreenVisible}" Width="1200" TextElement.Foreground="{DynamicResource TextBrush}" Margin="32" RowDefinitions="76,*,Auto" RowSpacing="20">
+  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="24">
+   <Viewbox Width="217.35" Height="58.59" Stretch="Uniform" VerticalAlignment="Center"><views:RazrBadge Text="CAMERA RAZR I" /></Viewbox>
+   <Viewbox Grid.Column="1" Height="49.14" Stretch="Uniform" HorizontalAlignment="Right" VerticalAlignment="Center">
+   <StackPanel Orientation="Horizontal" Spacing="12">
+    <Button Command="{Binding OpenRazrSettingsCommand}" IsEnabled="{Binding CanSwitchRazr}" Content="Switch Razr" Height="52" CornerRadius="12" />
+    <Button IsVisible="{Binding IsDeveloperScreenVisible}" Command="{Binding EditSwitchPinCommand}" Content="Switch PIN" Height="52" CornerRadius="12" />
+    <TextBlock IsVisible="{Binding IsDeveloperScreenVisible}" Text="{Binding RelayMode}" FontSize="10" VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}" />
+    <Button IsVisible="{Binding IsDeveloperScreenVisible}" Command="{Binding ChooseModeCommand}" IsEnabled="{Binding CanChangeMode}" Content="Modes" Height="52" MinWidth="90" Background="#292A32" Foreground="#D7D7DE" Padding="16,10" CornerRadius="12" VerticalAlignment="Center" />
+    <Button IsVisible="{Binding ShowCurtainSettingsButton}" Command="{Binding OpenSettingsCommand}" IsEnabled="{Binding CanSelectScene}" Content="⚙" FontSize="26" Height="52" Width="52" Padding="0" CornerRadius="12" VerticalAlignment="Center" AutomationProperties.Name="Curtain settings" />
+    <views:BrandLogo Classes="tight" Width="150" Height="52" VerticalAlignment="Center" />
+   </StackPanel>
+   </Viewbox>
+  </Grid>
+  <Grid Grid.Row="1" ColumnDefinitions="550,*" ColumnSpacing="44">
+   <Grid RowDefinitions="22,*,24" RowSpacing="0">
+    <TextBlock IsVisible="{Binding IsDeveloperScreenVisible}" Text="BACKGROUND 1 → 5" FontSize="11" Foreground="{DynamicResource MutedBrush}" LetterSpacing="1" />
+    <ItemsControl Grid.Row="1" ItemsSource="{Binding BackgroundOptions}" IsEnabled="{Binding CanSelectScene}">
+     <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="5" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+     <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CurtainOption">
+      <Button Classes="photo" Classes.selected="{Binding IsSelected}" Background="{Binding Color}" Command="{Binding SelectCommand}" CommandParameter="{Binding}" Margin="0,0,0,14">
+       <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" Text="{Binding Name}" Foreground="{Binding UserTextColor}" TextTrimming="CharacterEllipsis" />
+      </Button>
+     </DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center"><Ellipse Fill="{Binding SelectionColor}" Width="8" Height="8" /><TextBlock Text="{Binding SelectionLabel}" FontSize="13" Foreground="{DynamicResource SecondaryBrush}" /></StackPanel>
+   </Grid>
+   <Grid Grid.Column="1" RowDefinitions="22,Auto,*,Auto,100" RowSpacing="14">
+    <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center"><Ellipse Width="10" Height="10" Fill="{Binding CameraIndicator}" /><TextBlock Text="{Binding UserCameraLabel}" FontSize="16" FontWeight="Bold" /></StackPanel>
+    <Grid Grid.Row="1" IsVisible="{Binding IsDeveloperScreenVisible}" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+     <ComboBox ItemsSource="{Binding Cameras}" SelectedItem="{Binding SelectedCamera, Mode=TwoWay}" PlaceholderText="Select a camera" HorizontalAlignment="Stretch" MinHeight="40" CornerRadius="12" AutomationProperties.Name="Preview camera">
+      <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" x:CompileBindings="False" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+     </ComboBox>
+     <Button Grid.Column="1" Command="{Binding RefreshCamerasCommand}" Content="Refresh" Padding="18,8" CornerRadius="12" />
+    </Grid>
+    <Border Grid.Row="2" CornerRadius="22" Background="#303239" BorderBrush="#5A5C65" BorderThickness="1" ClipToBounds="True">
+     <Grid><Image Source="{Binding CameraFrame}" Stretch="UniformToFill" /><Image Source="{Binding BackgroundPreview}" IsVisible="{Binding IsBackgroundPreviewVisible}" Stretch="UniformToFill" />
+      <StackPanel IsVisible="{Binding IsUserCameraOffline}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
+       <TextBlock Text="◎" FontSize="52" Foreground="#868A97" HorizontalAlignment="Center" /><TextBlock Text="Waiting for your camera" FontSize="18" Foreground="#E0E1E8" HorizontalAlignment="Center" />
+       <Button x:Name="ReconnectCameraButton" Classes="userReconnect" Command="{Binding ReconnectCameraCommand}" Content="Reconnect camera" Background="#DDEBFF" Foreground="#202334" Padding="18,10" CornerRadius="12" HorizontalAlignment="Center" />
+      </StackPanel>
+     </Grid>
+    </Border>
+    <Grid Grid.Row="3">
+     <TextBlock IsVisible="{Binding IsDeveloperScreenVisible}" Text="{Binding CameraStatus}" ToolTip.Tip="{Binding CameraStatus}" Foreground="{DynamicResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
+    </Grid>
+    <Grid Grid.Row="4" ColumnDefinitions="*,Auto,*" ColumnSpacing="20">
+     <Button Grid.Column="1" Classes="photo" Background="#E01E2F" FontSize="38" Width="220" Command="{Binding StartBackgroundCommand}" IsEnabled="{Binding CanStart}">
+      <TextBlock Text="START" FontSize="38" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+     </Button>
+    </Grid>
+   </Grid>
+  </Grid>
+  <Border Grid.Row="2" IsVisible="{Binding IsDeveloperScreenVisible}" Height="180" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+   <Grid ColumnDefinitions="550,*" ColumnSpacing="44">
+    <StackPanel Spacing="6">
+     <TextBlock Text="{Binding HardwareSummary}" FontSize="11" Foreground="{DynamicResource MutedBrush}" LetterSpacing="1.5" />
+     <ItemsControl ItemsSource="{Binding BackgroundOptions}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CurtainOption">
+      <Grid ColumnDefinitions="16,*,Auto" Margin="0,0,0,4"><Ellipse Fill="{Binding Color}" Width="7" Height="7" HorizontalAlignment="Left" /><TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="13" /><TextBlock Grid.Column="2" Text="{Binding CommandStatus}" FontSize="13" Foreground="{DynamicResource SecondaryBrush}" /></Grid>
+     </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+     <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MutedBrush}" FontSize="11" TextWrapping="Wrap" MaxHeight="28" />
+    </StackPanel>
+    <Grid Grid.Column="1" RowDefinitions="26,*" RowSpacing="6">
+     <Grid ColumnDefinitions="*,Auto"><TextBlock Text="ACTIVITY LOG · TEMPORARY" FontSize="11" Foreground="{DynamicResource MutedBrush}" LetterSpacing="1.5" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"><Button Command="{Binding CheckRelaysCommand}" Content="Check relays" FontSize="11" Padding="10,3" CornerRadius="6" /><Button Command="{Binding ClearLogCommand}" Content="Clear" FontSize="11" Padding="10,3" CornerRadius="6" /></StackPanel>
+     </Grid>
+     <Border Grid.Row="1" Background="{DynamicResource LogBrush}" CornerRadius="10" Padding="12,8">
+      <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><ItemsControl ItemsSource="{Binding ActivityLog}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" FontSize="12" Foreground="{DynamicResource SecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,5" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
+     </Border>
+    </Grid>
+   </Grid>
+  </Border>
+ </Grid>
+ </Viewbox>
+ </ThemeVariantScope>
+ <Border x:Name="ModeHoldArea" Width="80" Height="80" Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Bottom" IsVisible="{Binding IsUserScreenVisible}"
+         PointerPressed="OnModeHoldPressed" PointerReleased="OnModeHoldReleased" PointerMoved="OnModeHoldMoved" PointerCaptureLost="OnModeHoldCaptureLost" />
+ </Grid>
+</UserControl>

@@ -1,0 +1,13 @@
+KEYCHECK V9 - POPUP CAN GIUA
+Dong CurtantControl. Giai nen ZIP va chay trong thu muc vua giai nen:
+sh install.sh
+Chay user pi, khong sudo sh install.sh.
+
+Logo, ten app, dong thong bao va nhom nut duoc can giua ca ngang/doc.
+Ten hien thi: Curtant Control. Dong hoi: Stop Curtant Control?
+Giu nguyen kich thuoc nut Cancel/Stop va kich thuoc logo chuan0.8.23.
+Ap dung chung cho popup Starting/Stop. Khong doi duong dan/fileexe.
+Khong can thay DLL hoac cap nhat app cho thay doi nay.
+Installer giu backup script/drop-in, cap nhat autostart chung nhu truoc.
+Log: sudo journalctl -fu keycheck.service
+Chua thu Tk/X11 tren Pi that.

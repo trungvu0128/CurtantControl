@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CurtantControl/CurtantControl.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CurtantControl.RelayChecks/CurtantControl.RelayChecks.csproj" />
+  </Folder>
+</Solution>

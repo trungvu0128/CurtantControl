@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CurtantControl.ViewModels" xmlns:views="using:CurtantControl.Views" x:Class="CurtantControl.Views.StartupModeView" x:DataType="vm:MainViewModel">
+    <Viewbox Stretch="Uniform">
+        <Grid Width="1100" Height="660" Margin="40" RowDefinitions="*,Auto,Auto,*" RowSpacing="28">
+            <views:BrandLogo Grid.Row="0" Classes="tight" Width="150" Height="52" HorizontalAlignment="Right" VerticalAlignment="Top" />
+            <StackPanel Grid.Row="1" Spacing="12" HorizontalAlignment="Center">
+                <TextBlock Text="THE BACKDROP STUDIO" Foreground="{DynamicResource AccentTextBrush}" FontSize="14" LetterSpacing="4" HorizontalAlignment="Center" />
+                <TextBlock Text="Choose your mode" FontSize="42" FontWeight="Bold" HorizontalAlignment="Center" />
+                <TextBlock Text="A simple shooting screen or full control of your setup." FontSize="18" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Center" />
+            </StackPanel>
+            <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="24" Margin="32,12">
+                <Button Command="{Binding EnterUserModeCommand}" HorizontalAlignment="Stretch" Padding="32" CornerRadius="24"
+                        Background="#F2AA7E" Foreground="#292027" BorderThickness="1" BorderBrush="#FFD3B7">
+                    <StackPanel Spacing="16" Margin="8">
+                        <TextBlock Text="◎" FontSize="50" />
+                        <TextBlock Text="User mode" FontSize="28" />
+                        <TextBlock Text="Choose a background, preview the scene,&#10;then press START." FontSize="16" FontWeight="Normal" LineHeight="25" />
+                        <TextBlock Text="OPEN PHOTOBOOTH  →" FontSize="13" LetterSpacing="1" Margin="0,16,0,0" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="1" Command="{Binding EnterDeveloperModeCommand}" HorizontalAlignment="Stretch" Padding="32" CornerRadius="24"
+                        Background="{DynamicResource PanelBrush}" Foreground="{DynamicResource TextBrush}" BorderThickness="1" BorderBrush="{DynamicResource LineBrush}">
+                    <StackPanel Spacing="16" Margin="8">
+                        <TextBlock Text="⚙" FontSize="50" />
+                        <TextBlock Text="Developer mode" FontSize="28" />
+                        <TextBlock Text="Camera selection, curtain settings,&#10;relay checks and activity logs." FontSize="16" FontWeight="Normal" LineHeight="25" />
+                        <TextBlock Text="OPEN CONTROL PANEL  →" FontSize="13" LetterSpacing="1" Margin="0,16,0,0" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Grid>
+    </Viewbox>
+</UserControl>

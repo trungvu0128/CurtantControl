@@ -1,0 +1,26 @@
+{
+  "SimulateRelays": false,
+  "BcmPinsByChannel": [
+    22,
+    10,
+    9,
+    11,
+    5,
+    6,
+    13,
+    19
+  ],
+  "ActiveLow": false,
+  "CurtainOrderFrontToBack": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "ActivationMilliseconds": 500,
+  "MaximumActivationMilliseconds": 1000,
+  "BreakBeforeMakeMilliseconds": 100,
+  "FfmpegPath": "ffmpeg",
+  "CameraDevice": null,
+  "CameraStreamUrl": "http://127.0.0.1:5000/video_feed"
+}

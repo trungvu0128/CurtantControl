@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CurtantControl.ViewModels" xmlns:views="using:CurtantControl.Views" x:Class="CurtantControl.Views.RazrModelSelectionView" x:DataType="vm:MainViewModel"
+             Background="{DynamicResource PageBrush}" Foreground="{DynamicResource TextBrush}">
+    <Viewbox Stretch="Uniform">
+        <Grid Width="1100" Height="660" Margin="40" RowDefinitions="*,Auto,Auto,Auto,*" RowSpacing="28">
+            <views:BrandLogo Grid.Row="0" Classes="tight" Width="150" Height="52" HorizontalAlignment="Right" VerticalAlignment="Top" />
+            <StackPanel Grid.Row="1" Spacing="12" HorizontalAlignment="Center">
+                <TextBlock Text="CAMERA RAZR" Foreground="{DynamicResource AccentTextBrush}" FontSize="14" LetterSpacing="4" HorizontalAlignment="Center" />
+                <TextBlock Text="Choose your Razr controller" FontSize="42" FontWeight="Bold" HorizontalAlignment="Center" />
+            </StackPanel>
+            <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="24" Margin="32,12">
+                <Button Command="{Binding EnterRazrICommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Height="260" Padding="32" CornerRadius="24"
+                        Background="#F2AA7E" Foreground="#292027" BorderThickness="1" BorderBrush="#FFD3B7">
+                    <StackPanel Spacing="16" Margin="8" VerticalAlignment="Center">
+                        <TextBlock Text="▥" FontSize="50" />
+                        <TextBlock Text="CAMERA RAZR I" FontSize="28" FontWeight="Bold" />
+                        <TextBlock Text="Curtain relays" FontSize="18" FontWeight="Normal" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="1" Command="{Binding EnterRazrIICommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Height="260" Padding="32" CornerRadius="24"
+                        Background="{DynamicResource PanelBrush}" Foreground="{DynamicResource TextBrush}" BorderThickness="1" BorderBrush="{DynamicResource LineBrush}">
+                    <StackPanel Spacing="16" Margin="8" VerticalAlignment="Center">
+                        <TextBlock Text="◎" FontSize="50" />
+                        <TextBlock Text="CAMERA RAZR II" FontSize="28" FontWeight="Bold" />
+                        <TextBlock Text="Camera angle motor" FontSize="18" FontWeight="Normal" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+            <StackPanel Grid.Row="3" HorizontalAlignment="Center" Spacing="16">
+                <TextBlock Text="{Binding RazrNotice}" Foreground="{DynamicResource MutedBrush}" FontSize="16" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="900" />
+                <Button Content="←  Back" Command="{Binding CancelRazrSettingsCommand}" Padding="24,14" CornerRadius="14" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </Viewbox>
+</UserControl>

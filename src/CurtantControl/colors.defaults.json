@@ -1,0 +1,118 @@
+{
+  "Colors": [
+    {
+      "Key": "pink",
+      "Name": "Pink",
+      "Color": "#D989AE",
+      "PreviewImage": "Backgrounds/pink.png"
+    },
+    {
+      "Key": "blue",
+      "Name": "Sky Blue",
+      "Color": "#60BCD5",
+      "PreviewImage": "Backgrounds/blue.png"
+    },
+    {
+      "Key": "green",
+      "Name": "Green",
+      "Color": "#42AD6A",
+      "PreviewImage": "Backgrounds/green.png"
+    },
+    {
+      "Key": "gray",
+      "Name": "Gray",
+      "Color": "#85858C",
+      "PreviewImage": "Backgrounds/gray.png"
+    },
+    {
+      "Key": "dark-blue",
+      "Name": "Dark Blue",
+      "Color": "#233A73",
+      "PreviewImage": "Backgrounds/dark-blue.png"
+    },
+    {
+      "Key": "purple",
+      "Name": "Purple",
+      "Color": "#9580D5",
+      "PreviewImage": "Backgrounds/purple.png"
+    },
+    {
+      "Key": "yellow",
+      "Name": "Yellow",
+      "Color": "#F4D35E",
+      "PreviewImage": "Backgrounds/yellow.png"
+    },
+    {
+      "Key": "red",
+      "Name": "Red",
+      "Color": "#B90D20",
+      "PreviewImage": "Backgrounds/red.png"
+    },
+    {
+      "Key": "white",
+      "Name": "White",
+      "Color": "#F2F2F2",
+      "PreviewImage": "Backgrounds/white.png"
+    },
+    {
+      "Key": "brown",
+      "Name": "Brown",
+      "Color": "#865E46",
+      "PreviewImage": "Backgrounds/brown.png"
+    },
+    {
+      "Key": "gold",
+      "Name": "Gold",
+      "Color": "#C5A04A",
+      "PreviewImage": "Backgrounds/gold.png"
+    },
+    {
+      "Key": "black",
+      "Name": "Black",
+      "Color": "#202126",
+      "PreviewImage": "Backgrounds/black.png"
+    },
+    {
+      "Key": "silver",
+      "Name": "Silver",
+      "Color": "#BFC5CB",
+      "PreviewImage": "Backgrounds/silver.png"
+    },
+    {
+      "Key": "grain-art",
+      "Name": "Grain Art",
+      "Color": "#C9B491",
+      "PreviewImage": "Backgrounds/grain-art.png"
+    },
+    {
+      "Key": "vintage",
+      "Name": "Vintage",
+      "Color": "#987B62",
+      "PreviewImage": "Backgrounds/vintage.png"
+    },
+    {
+      "Key": "antique",
+      "Name": "Antique",
+      "Color": "#A58C55",
+      "PreviewImage": "Backgrounds/antique.png"
+    },
+    {
+      "Key": "modern",
+      "Name": "Modern",
+      "Color": "#A8B6C4",
+      "PreviewImage": "Backgrounds/modern.png"
+    },
+    {
+      "Key": "hip-hop",
+      "Name": "Hip-hop",
+      "Color": "#655282",
+      "PreviewImage": "Backgrounds/hip-hop.png"
+    }
+  ],
+  "Slots": [
+    "pink",
+    "blue",
+    "green",
+    "purple"
+  ]
+}

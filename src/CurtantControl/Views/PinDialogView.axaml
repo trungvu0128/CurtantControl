@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:CurtantControl.ViewModels" x:Class="CurtantControl.Views.PinDialogView" x:DataType="vm:MainViewModel">
+ <UserControl.Styles>
+  <Style Selector="Button.key"><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="VerticalAlignment" Value="Stretch"/><Setter Property="FontSize" Value="28"/><Setter Property="CornerRadius" Value="14"/><Setter Property="MinHeight" Value="64"/></Style>
+ </UserControl.Styles>
+ <Border Background="#B8000000" Padding="20">
+  <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
+   <Border Width="410" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource MutedBrush}" BorderThickness="1" CornerRadius="24" Padding="26">
+    <StackPanel Spacing="16">
+     <TextBlock Text="{Binding PinTitle}" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
+     <TextBlock Text="{Binding PinHint}" FontSize="16" HorizontalAlignment="Center" Foreground="{DynamicResource MutedBrush}"/>
+     <Border Background="{DynamicResource PageBrush}" CornerRadius="12" Padding="12">
+      <TextBlock Text="{Binding MaskedPin}" FontSize="28" HorizontalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
+     </Border>
+     <TextBlock Text="{Binding PinNotice}" MinHeight="24" TextWrapping="Wrap" TextAlignment="Center" Foreground="#E76E69" FontSize="15"/>
+     <Grid RowDefinitions="64,64,64,64" ColumnDefinitions="*,*,*" RowSpacing="10" ColumnSpacing="10">
+      <Button Classes="key" Content="1" Command="{Binding PinDigitCommand}" CommandParameter="1"/>
+      <Button Classes="key" Grid.Column="1" Content="2" Command="{Binding PinDigitCommand}" CommandParameter="2"/>
+      <Button Classes="key" Grid.Column="2" Content="3" Command="{Binding PinDigitCommand}" CommandParameter="3"/>
+      <Button Classes="key" Grid.Row="1" Content="4" Command="{Binding PinDigitCommand}" CommandParameter="4"/>
+      <Button Classes="key" Grid.Row="1" Grid.Column="1" Content="5" Command="{Binding PinDigitCommand}" CommandParameter="5"/>
+      <Button Classes="key" Grid.Row="1" Grid.Column="2" Content="6" Command="{Binding PinDigitCommand}" CommandParameter="6"/>
+      <Button Classes="key" Grid.Row="2" Content="7" Command="{Binding PinDigitCommand}" CommandParameter="7"/>
+      <Button Classes="key" Grid.Row="2" Grid.Column="1" Content="8" Command="{Binding PinDigitCommand}" CommandParameter="8"/>
+      <Button Classes="key" Grid.Row="2" Grid.Column="2" Content="9" Command="{Binding PinDigitCommand}" CommandParameter="9"/>
+      <Button Classes="key" Grid.Row="3" Content="←" Command="{Binding PinBackspaceCommand}" AutomationProperties.Name="Delete last digit"/>
+      <Button Classes="key" Grid.Row="3" Grid.Column="1" Content="0" Command="{Binding PinDigitCommand}" CommandParameter="0"/>
+      <Button Classes="key" Grid.Row="3" Grid.Column="2" Content="OK" Command="{Binding ConfirmPinCommand}" Background="#F2AA7E" Foreground="#19191F"/>
+     </Grid>
+     <Button Content="Cancel" Command="{Binding CancelPinCommand}" HorizontalAlignment="Stretch" Height="52" CornerRadius="12"/>
+    </StackPanel>
+   </Border>
+  </Viewbox>
+ </Border>
+</UserControl>

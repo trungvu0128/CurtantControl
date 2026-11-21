@@ -1,0 +1,66 @@
+[
+  {
+    "Name": "Red Room",
+    "Color": "red"
+  },
+  {
+    "Name": "Black Hole",
+    "Color": "black"
+  },
+  {
+    "Name": "Miller",
+    "Color": "silver"
+  },
+  {
+    "Name": "Elevator",
+    "Color": "gray"
+  },
+  {
+    "Name": "Subway",
+    "Color": "brown"
+  },
+  {
+    "Name": "LightBlue",
+    "Color": "blue"
+  },
+  {
+    "Name": "DarkBlue",
+    "Color": "dark-blue"
+  },
+  {
+    "Name": "Square pattern",
+    "Color": "silver"
+  },
+  {
+    "Name": "Green",
+    "Color": "green"
+  },
+  {
+    "Name": "Brown",
+    "Color": "brown"
+  },
+  {
+    "Name": "Yellow",
+    "Color": "yellow"
+  },
+  {
+    "Name": "Pink",
+    "Color": "pink"
+  },
+  {
+    "Name": "Hip-hop",
+    "Color": "hip-hop"
+  },
+  {
+    "Name": "Grain Art",
+    "Color": "grain-art"
+  },
+  {
+    "Name": "Vintage",
+    "Color": "vintage"
+  },
+  {
+    "Name": "Modern",
+    "Color": "modern"
+  }
+]

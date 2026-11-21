@@ -1,0 +1,63 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="CurtantControl.App"
+             xmlns:local="using:CurtantControl"
+             RequestedThemeVariant="Dark">
+             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="PageBrush" Color="#15161C" />
+                    <SolidColorBrush x:Key="TextBrush" Color="#F5F3F6" />
+                    <SolidColorBrush x:Key="MutedBrush" Color="#9A9BA8" />
+                    <SolidColorBrush x:Key="SecondaryBrush" Color="#C7C8D3" />
+                    <SolidColorBrush x:Key="PanelBrush" Color="#20222B" />
+                    <SolidColorBrush x:Key="LogBrush" Color="#1D1F27" />
+                    <SolidColorBrush x:Key="LineBrush" Color="#373944" />
+                    <SolidColorBrush x:Key="AccentTextBrush" Color="#F2AA7E" />
+                    <SolidColorBrush x:Key="SelectionBrush" Color="White" />
+                    <SolidColorBrush x:Key="SuccessBrush" Color="#5DD6A1" />
+                    <SolidColorBrush x:Key="ErrorBrush" Color="#FF9BA9" />
+                    <SolidColorBrush x:Key="ReconnectBrush" Color="#2D3D56" />
+                    <SolidColorBrush x:Key="ReconnectHoverBrush" Color="#405879" />
+                    <SolidColorBrush x:Key="ReconnectPressedBrush" Color="#526D91" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="PageBrush" Color="#F4F5F8" />
+                    <SolidColorBrush x:Key="TextBrush" Color="#202334" />
+                    <SolidColorBrush x:Key="MutedBrush" Color="#596174" />
+                    <SolidColorBrush x:Key="SecondaryBrush" Color="#414B60" />
+                    <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="LogBrush" Color="#E8ECF3" />
+                    <SolidColorBrush x:Key="LineBrush" Color="#C8CFDC" />
+                    <SolidColorBrush x:Key="AccentTextBrush" Color="#974719" />
+                    <SolidColorBrush x:Key="SelectionBrush" Color="#26344C" />
+                    <SolidColorBrush x:Key="SuccessBrush" Color="#14734C" />
+                    <SolidColorBrush x:Key="ErrorBrush" Color="#B0253C" />
+                    <SolidColorBrush x:Key="ReconnectBrush" Color="#DDEBFF" />
+                    <SolidColorBrush x:Key="ReconnectHoverBrush" Color="#BDD6FA" />
+                    <SolidColorBrush x:Key="ReconnectPressedBrush" Color="#9CBDEA" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <Application.Styles>
+        <FluentTheme />
+        <Style Selector="Button">
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button TextBlock">
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </Application.Styles>
+</Application>
