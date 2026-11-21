@@ -86,9 +86,11 @@ internal static class UpdateChecks
             vm.EnterUserModeCommand.Execute(null);
             var first=vm.CheckForUpdatesOnStartupAsync();
             assert(ReferenceEquals(first,vm.CheckForUpdatesOnStartupAsync()) && vm.CanSelectScene,"Startup blocked controls or checked twice.");
+            assert(vm.IsStartupUpdateBannerVisible && !vm.HasUpdateNotification, "Startup did not display the in-progress check.");
             service.Result.TrySetResult(GitHubAppUpdates.ParseRelease(ReleaseJson(),"0.10.5"));
             await first;
-            assert(service.Checks==1 && service.Installs==0 && vm.HasUpdateNotification && !vm.IsUpdatesOpen,"Startup installed or opened a modal.");
+            assert(service.Checks==1 && service.Installs==0 && vm.HasUpdateNotification && !vm.IsStartupUpdateBannerVisible && !vm.IsUpdatesOpen,
+                "Startup did not replace the check banner with the available update notice.");
             vm.OpenUpdatesCommand.Execute(null); await vm.InstallUpdateCommand.ExecuteAsync(null);
             assert(!vm.IsUpdatesOpen && service.Installs==0,"User bypassed Developer update gate.");
             vm.DismissUpdateCommand.Execute(null); assert(!vm.HasUpdateNotification,"Notice did not dismiss.");
@@ -120,7 +122,8 @@ internal static class UpdateChecks
             var offline=new FakeUpdates(); offline.Result.TrySetException(new HttpRequestException("offline"));
             await using var user=new MainViewModel(new(),cameraCatalog:new FakeCameraCatalog(),updateService:offline);
             user.EnterUserModeCommand.Execute(null); await user.CheckForUpdatesOnStartupAsync();
-            assert(user.CanSelectScene && !user.IsUpdatesOpen && !user.HasUpdateNotification,"Offline startup blocked User.");
+            assert(user.CanSelectScene && !user.IsUpdatesOpen && !user.HasUpdateNotification && !user.IsStartupUpdateBannerVisible,
+                "Offline startup blocked User or left the checking banner visible.");
         });
     }
 }

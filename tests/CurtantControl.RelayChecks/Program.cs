@@ -10,6 +10,7 @@ using System.Text;
 if (args is ["--verify-window-close"]) { UiPreview.VerifyWindowClose(); return; }
 if (args is ["--render-updates", var updatesPath]) { UiPreview.Render(updatesPath, showUpdates: true); return; }
 if (args is ["--render-updates-small", var smallUpdatesPath]) { UiPreview.Render(smallUpdatesPath, showUpdates: true, width: 800, height: 480); return; }
+if (args is ["--render-startup-update", var startupUpdatePath]) { UiPreview.Render(startupUpdatePath, mode: "user", width: 800, height: 480, showStartupUpdate: true); return; }
 if (args is ["--render-pin", var pinPath]) { UiPreview.Render(pinPath, mode: "user", pinDialog: true); return; }
 if (args is ["--render-pin-small", var pinSmallPath]) { UiPreview.Render(pinSmallPath, mode: "user", pinDialog: true, width: 800, height: 480, light: true); return; }
 if (args is ["--render-pin-settings", var pinSettingsPath]) { UiPreview.Render(pinSettingsPath, mode: "developer", pinDialog: true); return; }

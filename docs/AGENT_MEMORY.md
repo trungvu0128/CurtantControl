@@ -1250,3 +1250,10 @@ the full bundle before shutdown. Manual bootstrap for 0.11.0 uses the helper
 inside the small ZIP. Debug/Release Buster ARM32 build, 98 C# checks, 57 Python
 checks, Python 3.7 syntax and patch application to a copy of 0.11.0 passed. The
 952055-byte ZIP preserves customized settings in that check. No physical Pi test.
+
+0.11.2 displays a non-interactive startup check banner for at least 1.2 seconds.
+The banner clears on completion and becomes an update notice when applicable.
+Existing one-check startup and idle/modal visibility rules remain in place.
+Debug/Release, 98 app checks and Buster ARM32 publish passed. Headless 800×480
+preview shows the banner. Verified small patches from both 0.11.0 and 0.11.1
+against copied installations with a custom config. No physical Pi test.

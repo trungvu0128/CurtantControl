@@ -15,6 +15,7 @@ public partial class MainViewModel
     private CancellationTokenSource? _updateCancellation;
     private bool _updateDismissed;
     private bool _updateHandoff;
+    private bool _checkingStartupUpdate;
     public event Action? UpdateInstallReady;
     [ObservableProperty] public partial bool IsUpdatesOpen { get; set; }
     [ObservableProperty] public partial bool IsCheckingUpdate { get; set; }
@@ -28,8 +29,9 @@ public partial class MainViewModel
         : $"Full update · {release.Size / 1048576d:0.0} MB";
     public string LastUpdateOutcome => _updates.LastInstallMessage ?? "";
     public string UpdateNotification => $"Update {LatestAppVersion} available";
-    public bool HasUpdateNotification => _availableUpdate is not null && !_updateDismissed && !IsUpdatesOpen
-        && !IsSettingsOpen && !IsPinDialogOpen && !IsMoving;
+    private bool CanShowUpdateBanner => !IsUpdatesOpen && !IsSettingsOpen && !IsPinDialogOpen && !IsMoving;
+    public bool IsStartupUpdateBannerVisible => _checkingStartupUpdate && CanShowUpdateBanner;
+    public bool HasUpdateNotification => !_checkingStartupUpdate && _availableUpdate is not null && !_updateDismissed && CanShowUpdateBanner;
     public bool IsUpdateBusy => IsCheckingUpdate || IsPreparingUpdate;
     public bool CanInstallUpdate => Mode == ApplicationMode.Developer && IsUpdatesOpen && !IsUpdateBusy
         && !IsMoving && !_disposed && _availableUpdate is not null && _updates.CanInstall;
@@ -42,10 +44,11 @@ public partial class MainViewModel
     private void NotifyUpdateActions()
     {
         foreach (var property in new[] { nameof(CanInstallUpdate), nameof(CanCheckUpdate), nameof(IsUpdateBusy),
-                     nameof(HasUpdateNotification), nameof(UpdateNotification), nameof(LatestAppVersion), nameof(UpdateNotes), nameof(UpdateDownloadSize), nameof(LastUpdateOutcome), nameof(CanSelectScene) })
+                     nameof(IsStartupUpdateBannerVisible), nameof(HasUpdateNotification), nameof(UpdateNotification), nameof(LatestAppVersion), nameof(UpdateNotes), nameof(UpdateDownloadSize), nameof(LastUpdateOutcome), nameof(CanSelectScene) })
             OnPropertyChanged(property);
     }
-    public Task CheckForUpdatesOnStartupAsync() => _startupUpdateTask ??= CheckUpdatesCoreAsync(true);
+    public Task CheckForUpdatesOnStartupAsync() => _startupUpdateTask ??=
+        _updates is NoAppUpdates ? Task.CompletedTask : CheckUpdatesCoreAsync(true);
     [RelayCommand] private void OpenUpdates()
     {
         if (!CanConfigureRazr || IsSettingsOpen) return;
@@ -70,26 +73,36 @@ public partial class MainViewModel
     private async Task CheckUpdatesCoreAsync(bool automatic)
     {
         if (_disposed || IsUpdateBusy) return;
+        var token = _lifetime.Token;
+        _checkingStartupUpdate = automatic;
+        // Give the startup notice time to paint even when GitHub responds immediately.
+        var minimumNoticeTime = automatic ? Task.Delay(TimeSpan.FromSeconds(1.2), token) : Task.CompletedTask;
         IsCheckingUpdate = true;
         UpdateStatus = "Checking GitHub Releases…";
         try
         {
             // Yield so startup rendering and camera startup never wait for HTTP.
             await Task.Yield();
-            var release = await _updates.CheckAsync(_lifetime.Token);
+            var release = await _updates.CheckAsync(token);
             if (_disposed) return;
             _availableUpdate = release;
             _updateDismissed = false;
             UpdateStatus = release is null ? "No newer published version is available." : "A new version is available.";
             if (release is not null) AddLog($"Update available: {release.Version}");
         }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception error)
         {
             UpdateStatus = "Could not check updates. Check your connection and try again.";
             AddLog($"Update check failed{(automatic ? " at startup" : "")}: {error.Message}");
         }
-        finally { IsCheckingUpdate = false; NotifyUpdateActions(); }
+        finally
+        {
+            try { await minimumNoticeTime; }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+            _checkingStartupUpdate = false;
+            IsCheckingUpdate = false;
+        }
     }
     [RelayCommand] private async Task InstallUpdateAsync()
     {

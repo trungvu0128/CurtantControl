@@ -28,6 +28,11 @@
             <views:CurtainSettingsView DataContext="{Binding CurtainSettings}" />
         </Border>
         <views:PinDialogView IsVisible="{Binding IsPinDialogOpen}" />
+        <Border IsVisible="{Binding IsStartupUpdateBannerVisible}" IsHitTestVisible="False"
+                VerticalAlignment="Top" HorizontalAlignment="Center" Margin="12" Padding="14,8"
+                CornerRadius="12" Background="{DynamicResource PanelBrush}" BorderBrush="#F2AA7E" BorderThickness="1">
+            <TextBlock Text="Checking for updates…" Foreground="{DynamicResource TextBrush}" />
+        </Border>
         <Border IsVisible="{Binding HasUpdateNotification}" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="12" Padding="14,8" CornerRadius="12" Background="{DynamicResource PanelBrush}" BorderBrush="#F2AA7E" BorderThickness="1">
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <TextBlock Text="{Binding UpdateNotification}" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>

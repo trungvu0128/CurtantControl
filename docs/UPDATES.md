@@ -2,7 +2,9 @@
 
 The app checks `trungvu0128/CurtantControl` GitHub Releases once each time its
 window opens. The HTTP check runs asynchronously alongside camera startup, with
-a15s limit. Offline startup stays usable. There is no background auto-install.
+a 15-second limit. From 0.11.2, a brief “Checking for updates…” banner appears
+at the top of the app. It becomes an update notice if a newer version is found
+and disappears otherwise. Offline startup stays usable.
 Only a newer non-draft/non-prerelease `vMAJOR.MINOR.PATCH` release with the exact
 BusterARM32 full bundle and its SHA256 asset is offered. Source branch pushes
 alone do not create an update.

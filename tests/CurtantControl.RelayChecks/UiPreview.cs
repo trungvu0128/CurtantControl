@@ -44,17 +44,17 @@ internal static class UiPreview
         Console.WriteLine("Verified window closes after synchronous cleanup and stuck camera; repeated Stop never skips relay release.");
     }
 
-    public static void Render(string path, bool settingsScreen = false, int width = 1280, int height = 760, bool liveSample = false, bool light = false, bool hoverReconnect = false, string mode = "developer", bool hoverCurtain = false, bool verifyModeHold = false, bool nearestRelayOne = false, bool razrII = false, bool razrSetup = false, bool setupBottom = false, bool modelChooser = false, bool verifyRazrState = false, bool pinDialog = false, bool showUpdates = false)
+    public static void Render(string path, bool settingsScreen = false, int width = 1280, int height = 760, bool liveSample = false, bool light = false, bool hoverReconnect = false, string mode = "developer", bool hoverCurtain = false, bool verifyModeHold = false, bool nearestRelayOne = false, bool razrII = false, bool razrSetup = false, bool setupBottom = false, bool modelChooser = false, bool verifyRazrState = false, bool pinDialog = false, bool showUpdates = false, bool showStartupUpdate = false)
     {
         AppBuilder.Configure<CurtantControl.App>().UseSkia()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .WithInterFont().SetupWithoutStarting();
         var updates = new FakeUpdates();
-        updates.Result.TrySetResult(CurtantControl.Services.GitHubAppUpdates.ParseRelease(UpdateChecks.ReleaseJson(), "0.10.5"));
+        if (showUpdates) updates.Result.TrySetResult(CurtantControl.Services.GitHubAppUpdates.ParseRelease(UpdateChecks.ReleaseJson(), "0.10.5"));
         var viewModel = new MainViewModel(new CurtantControl.Services.PhotoboothSettings { CurtainOrderFrontToBack = nearestRelayOne ? [1, 2, 3, 4] : [4, 3, 2, 1] },
             orderStore: new MemoryOrderStore(), cameraCatalog: new FakeCameraCatalog(),
             cameraFactory: new FakeCameraRig().Create, themeStore: new PreviewThemeStore(), paletteStore: new PreviewPaletteStore(),
-            updateService: showUpdates ? updates : null);
+            updateService: showUpdates || showStartupUpdate ? updates : null);
         viewModel.IsDarkMode = !light;
         if (mode == "developer") viewModel.EnterDeveloperModeCommand.Execute(null);
         if (mode == "user") viewModel.EnterUserModeCommand.Execute(null);
@@ -103,6 +103,9 @@ internal static class UiPreview
             WindowDecorations = WindowDecorations.None
         };
         window.Show();
+        if (showStartupUpdate && !window.GetVisualDescendants().OfType<TextBlock>().Any(text =>
+                text.Text == "Checking for updates…" && text.IsEffectivelyVisible))
+            throw new InvalidOperationException("The startup update banner is not visible on the opened window.");
         if (verifyRazrState)
         {
             viewModel.OpenCameraSettingsCommand.Execute(null);
