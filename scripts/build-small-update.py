@@ -11,6 +11,7 @@ PAYLOAD = 'payloads/buster-arm/'
 REPLACEABLE = {'CurtantControl.dll', 'CurtantControl.deps.json', 'CurtantControl.runtimeconfig.json',
                'VERSION.txt', 'apply-update.py'}
 LOCAL_CONFIG = {'photobooth.json', 'colors.json', 'razr2-options.json', 'razr2-names.json', 'razr2-colors.json'}
+MANUAL_CLEANUP = b'# Manual post-install cleanup. The app updater runs this after restarting.\n'
 
 
 def file_digest(path):
@@ -28,6 +29,15 @@ def files_for_patch(old, new):
                 and p.relative_to(root).as_posix() != 'VERSION.txt'}
     before, after = scan(old), scan(new)
     changed = {name for name in before.keys() | after.keys() if before.get(name) != after.get(name)}
+    if 'install.sh' in changed and 'install.sh' in before and 'install.sh' in after:
+        # The manual wrapper is not installed on Pi. Allow its cleanup tail while
+        # still comparing every line that affects how setup is launched.
+        def setup_body(bundle):
+            script = (bundle / 'install.sh').read_bytes().replace(b'\r\n', b'\n')
+            script = script.partition(MANUAL_CLEANUP)[0]
+            return script.replace(b'\nexec python3 setup.py "$@"\n', b'\npython3 setup.py "$@"\n')
+        if setup_body(old) == setup_body(new):
+            changed.remove('install.sh')
     allowed = {PAYLOAD + name for name in REPLACEABLE}
     if changed - allowed or any(name not in before or name not in after for name in changed):
         raise ValueError('Full update required. Files outside the patch set changed: ' + ', '.join(sorted(

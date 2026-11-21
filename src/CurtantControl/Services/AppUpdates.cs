@@ -40,6 +40,7 @@ public sealed class GitHubAppUpdates(HttpClient? client = null) : IAppUpdateServ
     public const string Repository = "trungvu0128/CurtantControl";
     private static readonly HttpClient Shared = new() { Timeout = TimeSpan.FromMinutes(10) };
     private readonly HttpClient _http = client ?? Shared;
+    private int _cleanupStarted;
     private string? _preparedUnit;
     private string? _preparedCancellationPath;
     private System.Collections.Generic.Dictionary<string,string>? _preparedEnvironment;
@@ -131,6 +132,8 @@ public sealed class GitHubAppUpdates(HttpClient? client = null) : IAppUpdateServ
     }
     public async Task<AppRelease?> CheckAsync(CancellationToken token)
     {
+        if (OperatingSystem.IsLinux() && Interlocked.Exchange(ref _cleanupStarted, 1) == 0)
+            _ = CleanCompletedUpdatesAsync(token);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
         timeout.CancelAfter(TimeSpan.FromSeconds(15));
         using var response = await GetAsync(new($"https://api.github.com/repos/{Repository}/releases/latest"), timeout.Token).ConfigureAwait(false);
@@ -139,6 +142,18 @@ public sealed class GitHubAppUpdates(HttpClient? client = null) : IAppUpdateServ
         var json = await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
         if (json.Length > 1_000_000) throw new InvalidDataException("Release response is too large.");
         return ParseRelease(json, CurrentVersion);
+    }
+    private static async Task CleanCompletedUpdatesAsync(CancellationToken token)
+    {
+        var helper = Path.Combine(AppContext.BaseDirectory, "apply-update.py");
+        if (!File.Exists(helper)) return;
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3), token).ConfigureAwait(false);
+            await RunAsync("/usr/bin/python3", [helper, "--clean-completed"], null, token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception error) { Console.Error.WriteLine("Update cleanup: " + error.Message); }
     }
     public async Task<string> DownloadAsync(AppRelease release, string directory, IProgress<string> progress, CancellationToken token)
     {

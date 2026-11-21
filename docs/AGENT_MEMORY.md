@@ -1257,3 +1257,11 @@ Existing one-check startup and idle/modal visibility rules remain in place.
 Debug/Release, 98 app checks and Buster ARM32 publish passed. Headless 800×480
 preview shows the banner. Verified small patches from both 0.11.0 and 0.11.1
 against copied installations with a custom config. No physical Pi test.
+
+0.11.3 cleans installer files after successful `install.sh` and verified manual
+ZIPs after a successful small update. Reopening the app cleans completed updater
+cache jobs. Failed/in-progress jobs stay available. Full rollback tools are kept
+in per-user recovery, and snapshots and small file backups remain available.
+98 app and 61 Python checks passed, including unrelated-file preservation and
+rollback retention. Buster ARM32 publish and real full/small artifact cleanup
+passed against temp installations for 0.11.0–0.11.2. No physical Pi test.

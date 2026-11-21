@@ -78,15 +78,12 @@ Các kiểm tra trên máy build không thay thế kiểm tra nút, GPIO, motor 
 
 ## Quay lại hệ thống Chromium cũ
 
-Chạy trong thư mục bundle đã dùng để cài:
-
-```sh
-sh rollback.sh
-```
-
-Giữ nguyên thư mục bundle và file `/home/pi/CurtantControl-Rollback-*.tar.gz`.
-Đường dẫn backup của lần cài được ghi trong `.rollback-target` trong bundle.
-Nếu đã chuyển thư mục, có thể chỉ định đúng backup:
+Từ 0.11.3, sau khi cài thành công, bộ cài lưu lệnh rollback vào
+`~/.local/share/CurtantControl/recovery/` rồi dọn các file cài đặt đã xác minh.
+Dùng đường dẫn `rollback.sh` được in trong terminal. Các file backup vẫn nằm
+trong `/home/pi/`. Nếu cài lỗi, giữ bộ cài để đọc log hoặc chạy lại.
+Với bộ cài cũ còn nguyên thư mục, dùng `sh rollback.sh` trong bundle.
+Có thể chỉ định đúng backup khi chạy từ thư mục chứa `rollback.sh`:
 
 ```sh
 sh rollback.sh /home/pi/CurtantControl-Rollback-<thời gian>.tar.gz

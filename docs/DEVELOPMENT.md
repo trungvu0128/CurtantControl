@@ -513,3 +513,9 @@ version when offered. The worker validates the baseline before reporting ready,
 then backs up and replaces changed files after the app exits. A baseline mismatch
 falls back to the full bundle. `scripts/build-small-update.py` compares two builds
 and refuses changes outside the app patch set. See UPDATES.md.
+
+From 0.11.3, the manual installer calls the installed worker to remove verified
+package files after success. The worker saves full rollback tools and the snapshot
+reference in per-user recovery before cleanup. The startup update service calls
+cleanup independently of GitHub and retires only completed jobs. The small-patch
+builder allows the manual cleanup hook since it runs after unchanged setup.

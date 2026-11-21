@@ -29,6 +29,130 @@ def file_hash(path):
     return digest.hexdigest()
 
 
+def preserve_recovery(base):
+    pointer = base / '.rollback-target'
+    if not pointer.is_file():
+        raise ValueError('Rollback reference is missing. Installer files were kept.')
+    snapshot = Path(pointer.read_text(encoding='utf-8').strip())
+    if (not snapshot.is_absolute() or not snapshot.is_file()
+            or not re.fullmatch(r'CurtantControl-Rollback-[\d-]+\.tar\.gz', snapshot.name)):
+        raise ValueError('Rollback snapshot is missing. Installer files were kept.')
+
+    import tempfile
+
+    root = Path.home() / '.local/share/CurtantControl/recovery'
+    root.mkdir(parents=True, exist_ok=True)
+    recovery = root / snapshot.name[:-len('.tar.gz')]
+    if not recovery.exists():
+        with tempfile.TemporaryDirectory(prefix='.staging-', dir=str(root)) as staging:
+            prepared = Path(staging) / 'recovery'
+            prepared.mkdir()
+            for name in ('rollback.sh', 'rollback.py', '.rollback-target'):
+                shutil.copy2(str(base / name), str(prepared / name))
+            prepared.rename(recovery)
+    if not all((recovery / name).is_file() and file_hash(recovery / name) == file_hash(base / name)
+               for name in ('rollback.sh', 'rollback.py', '.rollback-target')):
+        raise ValueError('Could not verify recovery files. Installer files were kept.')
+    print('Rollback: sh "%s"' % (recovery / 'rollback.sh'), flush=True)
+
+
+def remove_known_files(base, files):
+    if base.is_symlink() or not base.is_dir():
+        return
+    base = base.resolve()
+    folders = {base}
+    for name, expected in files.items():
+        relative = PurePosixPath(name)
+        if relative.is_absolute() or '..' in relative.parts or '\\' in name or not relative.parts:
+            continue
+        file = base.joinpath(*relative.parts)
+        if not file.is_file() or file.resolve() != file or file_hash(file) != expected:
+            continue
+        file.unlink()
+        folders.update(parent for parent in file.parents if base in parent.parents)
+    for folder in sorted(folders, key=lambda p: len(p.parts), reverse=True):
+        try:
+            folder.rmdir()
+        except OSError:
+            pass  # Keep folders containing anything outside the verified package.
+
+
+def clean_manual_install(base):
+    if not re.fullmatch(r'CurtantControl-Final-v\d+\.\d+\.\d+-pi-buster-arm', base.name):
+        return
+    path = base / 'SHA256SUMS.json'
+    manifest = path.read_bytes()
+    files = json.loads(manifest)
+    preserve_recovery(base)
+    for name in ('SHA256SUMS.json', 'payloads/buster-arm/SHA256SUMS.json', 'keycheck/SHA256SUMS.json', '.rollback-target'):
+        file = base / name
+        if file.is_file():
+            files[name] = file_hash(file)
+    for bytecode in (base / 'keycheck/__pycache__').glob('key_check_new.cpython-*.pyc'):
+        if bytecode.is_file() and not bytecode.is_symlink():
+            files[bytecode.relative_to(base).as_posix()] = file_hash(bytecode)
+    archive = base.with_name(base.name + '.tar.gz')
+    if archive.is_file() and not archive.is_symlink():
+        try:
+            with tarfile.open(str(archive), 'r:gz') as package:
+                with package.extractfile(base.name + '/SHA256SUMS.json') as source:
+                    matches = source.read(len(manifest) + 1) == manifest
+        except (KeyError, OSError, tarfile.TarError):
+            matches = False
+        if matches:
+            checksum = Path(str(archive) + '.sha256')
+            if checksum.is_file() and not checksum.is_symlink():
+                try:
+                    verify_checksum(archive)
+                except ValueError:
+                    pass
+                else:
+                    checksum.unlink()
+            archive.unlink()
+    remove_known_files(base, files)
+    print('Installation files cleaned.', flush=True)
+
+
+def finish_manual_small(archive):
+    with zipfile.ZipFile(str(archive)) as package:
+        files = {name: hashlib.sha256(package.read(name)).hexdigest() for name in package.namelist()}
+    match = re.fullmatch(SMALL_NAME, archive.name)
+    for name in ('update-' + match[2], archive.stem):
+        remove_known_files(archive.parent / name, files)
+    archive.unlink()
+    Path(str(archive) + '.sha256').unlink()
+    print('Downloaded update files cleaned.', flush=True)
+
+
+def clean_completed_updates():
+    cache = Path.home() / '.cache/CurtantControl/updates'
+    if not cache.is_dir() or cache.resolve() != cache:
+        return
+    for job in cache.iterdir():
+        if not re.fullmatch(r'(?:\.cleanup-)?[0-9a-f]{32}', job.name) or job.is_symlink() or not job.is_dir():
+            continue
+        try:
+            if job.name.startswith('.cleanup-'):
+                shutil.rmtree(str(job))
+                continue
+            result = job / 'status.json'
+            status = json.loads(result.read_text(encoding='utf-8'))
+            version = status.get('version', '')
+            if status.get('phase') != 'complete' or not re.fullmatch(r'\d+\.\d+\.\d+', version):
+                continue
+            if time.time() - result.stat().st_mtime < 2:
+                continue  # Give the old progress overlay a chance to see completion.
+            full = job / 'extracted' / ('CurtantControl-Final-v%s-pi-buster-arm' % version)
+            if full.is_dir():
+                preserve_recovery(full)
+            retired_job = job.with_name('.cleanup-' + job.name)
+            job.rename(retired_job)
+            shutil.rmtree(str(retired_job))
+            print('Cleaned completed update ' + version, flush=True)
+        except (OSError, ValueError, TypeError) as error:
+            print('Update cleanup skipped: ' + str(error), file=sys.stderr, flush=True)
+
+
 def report(path, phase, message, version):
     data = {'phase': phase, 'message': message, 'version': version}
     for target in (path, Path.home() / '.local/share/CurtantControl/update-status.json'):
@@ -249,6 +373,10 @@ def manual_small(archive):
         app_dir = app_directory()
         install_small(app_dir, prepare_small(archive, match[2], app_dir))
     print('Small update installed. Open CurtantControl from the desktop.', flush=True)
+    try:
+        finish_manual_small(archive)
+    except (OSError, ValueError, zipfile.BadZipFile) as error:
+        print('Update installed, but cleanup could not finish: ' + str(error), file=sys.stderr, flush=True)
 
 
 def main():
@@ -305,7 +433,14 @@ def main():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 3 and sys.argv[1] == '--apply-small':
+    if sys.argv[1:] == ['--clean-completed']:
+        clean_completed_updates()
+    elif len(sys.argv) == 3 and sys.argv[1] == '--clean-install':
+        try:
+            clean_manual_install(Path(sys.argv[2]).resolve())
+        except (OSError, ValueError) as error:
+            sys.exit('Installed successfully, but cleanup could not finish: ' + str(error))
+    elif len(sys.argv) == 3 and sys.argv[1] == '--apply-small':
         try:
             manual_small(Path(sys.argv[2]).resolve())
         except (OSError, ValueError) as error:

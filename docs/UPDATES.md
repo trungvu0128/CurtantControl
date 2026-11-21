@@ -72,6 +72,15 @@ bundle, status, and its `.rollback-target`. Durable result:
 Logs: `journalctl --user -u 'curtantcontrol-update-*' --no-pager`.
 Keep backups until the new version has been verified; they are not auto-deleted.
 
+From 0.11.3, the app removes completed download jobs after reopening. Failed
+and active jobs stay available for diagnosis. Full-install rollback tools and
+their backup reference are copied to `~/.local/share/CurtantControl/recovery/`
+before the installer files are removed. `sh install.sh` prints the recovery
+command and cleans the verified files in its standard extracted directory and
+the matching archive next to it. Manual small updates clean their ZIP, checksum
+and matching extracted files. Configuration, snapshot archives and file backups
+are outside the cleanup paths.
+
 ## Publish the next version
 
 Commit and push the reviewed source first, then build with that clean commit:

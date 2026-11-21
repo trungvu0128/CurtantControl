@@ -2,6 +2,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import tarfile
@@ -38,6 +39,90 @@ def bundle(job, extra=None, tamper=False):
 
 
 class UpdateWorkerTests(unittest.TestCase):
+    def test_manual_cleanup_hook_does_not_hide_setup_changes(self):
+        path = Path(__file__).resolve().parents[1] / 'scripts/build-small-update.py'
+        builder_spec = importlib.util.spec_from_file_location('build_small', path)
+        builder = importlib.util.module_from_spec(builder_spec)
+        builder_spec.loader.exec_module(builder)
+        with tempfile.TemporaryDirectory() as temp:
+            old, new = Path(temp) / 'old', Path(temp) / 'new'
+            for directory in (old, new):
+                directory.mkdir()
+            (old / 'install.sh').write_bytes(b'#!/bin/sh\nset -eu\nexec python3 setup.py "$@"\n')
+            script = b'#!/bin/sh\nset -eu\npython3 setup.py "$@"\n' + builder.MANUAL_CLEANUP + b'echo cleanup\n'
+            (new / 'install.sh').write_bytes(script)
+            self.assertEqual(builder.files_for_patch(old, new), ({}, {}))
+            (new / 'install.sh').write_bytes(script.replace(b'python3 setup.py', b'python3 setup.py --skip-packages'))
+            with self.assertRaisesRegex(ValueError, 'Full update required'):
+                builder.files_for_patch(old, new)
+
+    def test_full_cleanup_keeps_original_snapshot_and_unrelated_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            archive = bundle(home)
+            (home / 'job').mkdir()
+            app_bundle = updates.extract_verified(archive, '0.11.0', home / 'job')
+            archive = archive.rename(app_bundle.with_name(archive.name))
+            checksum = Path(str(archive) + '.sha256')
+            checksum.write_text(updates.file_hash(archive) + '  ' + archive.name + '\n')
+            snapshot = home / 'CurtantControl-Rollback-20261121-100000-000000.tar.gz'
+            snapshot.write_bytes(b'backup data')
+            (app_bundle / 'rollback.sh').write_text('rollback wrapper')
+            (app_bundle / '.rollback-target').write_text(str(snapshot))
+            (app_bundle / 'personal.txt').write_text('keep me')
+            (app_bundle / 'setup.py').write_text('locally edited')
+            with patch.object(Path, 'home', return_value=home):
+                updates.clean_manual_install(app_bundle)
+            recovery = home / '.local/share/CurtantControl/recovery/CurtantControl-Rollback-20261121-100000-000000'
+            self.assertEqual((recovery / '.rollback-target').read_text(), str(snapshot))
+            self.assertTrue((recovery / 'rollback.py').exists())
+            self.assertTrue(snapshot.exists())
+            self.assertFalse(archive.exists())
+            self.assertFalse(checksum.exists())
+            self.assertFalse((app_bundle / 'keycheck/install.sh').exists())
+            self.assertEqual((app_bundle / 'setup.py').read_text(), 'locally edited')
+            self.assertTrue((app_bundle / 'personal.txt').exists())
+
+    def test_cache_cleanup_requires_completed_jobs_and_keeps_recovery(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            cache = home / '.cache/CurtantControl/updates'
+            for name, phase in (('a' * 32, 'complete'), ('b' * 32, 'failed'), ('c' * 32, 'installing'), ('personal', 'complete')):
+                job = cache / name
+                job.mkdir(parents=True)
+                status = job / 'status.json'
+                status.write_text(json.dumps({'phase': phase, 'version': '0.11.0'}))
+                os.utime(status, (1, 1))
+            with patch.object(Path, 'home', return_value=home):
+                full = updates.extract_verified(bundle(cache / ('a' * 32)), '0.11.0', cache / ('a' * 32))
+                snapshot = home / 'CurtantControl-Rollback-20261121-100000-000000.tar.gz'
+                snapshot.write_bytes(b'snapshot')
+                (full / '.rollback-target').write_text(str(snapshot))
+                (full / 'rollback.sh').write_text('rollback')
+                updates.clean_completed_updates()
+            self.assertEqual({p.name for p in cache.iterdir()}, {'b' * 32, 'c' * 32, 'personal'})
+            self.assertTrue(snapshot.exists())
+            self.assertEqual(list(home.glob('.local/share/CurtantControl/recovery/*/.rollback-target'))[0].read_text(), str(snapshot))
+
+    def test_manual_small_cleanup_only_removes_matching_extracted_files(self):
+        from zipfile import ZipFile
+
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            archive = folder / 'CurtantControl-Update-v0.11.2-to-v0.11.3-pi-buster-arm.zip'
+            with ZipFile(archive, 'w') as package:
+                package.writestr('apply-update.py', 'helper')
+                package.writestr('patch.json', '{}')
+                package.extractall(folder / 'update-0.11.3')
+            checksum = Path(str(archive) + '.sha256')
+            checksum.write_text('checksum')
+            unrelated = folder / 'update-0.11.3/notes.txt'
+            unrelated.write_text('keep')
+            updates.finish_manual_small(archive)
+            self.assertFalse(archive.exists())
+            self.assertFalse(checksum.exists())
+            self.assertEqual(list(unrelated.parent.iterdir()), [unrelated])
+
     def test_small_update_touches_only_changed_app_files_and_restores_on_write_failure(self):
         from zipfile import ZipFile
 
