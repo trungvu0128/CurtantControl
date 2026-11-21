@@ -1217,3 +1217,7 @@ source branch codex/initial-import; artifacts/bin/obj/cache files excluded, comm
 .env excluded and LF text checkout configured. User approved author trungvu0128
 with GitHub noreply (verified account id72425062). Source remains same validated
 0.10.5 behavior; GitHub update-check feature is not implemented by repo linking.
+
+Initial source commit f2df459 pushed successfully; remote SHA verified. GitHub
+HEAD/default branch is codex/initial-import and local tracks origin branch. No
+release assets or updater workflow published as part of this repository setup.
