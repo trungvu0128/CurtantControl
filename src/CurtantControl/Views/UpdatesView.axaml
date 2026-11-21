@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:vm="using:CurtantControl.ViewModels" x:Class="CurtantControl.Views.UpdatesView" x:DataType="vm:MainViewModel">
+ <Border Background="#B8000000" Padding="24">
+  <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="Center">
+   <Border Width="650" Background="{DynamicResource PanelBrush}" CornerRadius="24" Padding="30">
+    <StackPanel Spacing="18">
+     <TextBlock Text="App updates" FontSize="30" FontWeight="Bold" Foreground="{DynamicResource TextBrush}"/>
+     <Grid ColumnDefinitions="*,*">
+      <StackPanel Spacing="6"><TextBlock Text="Installed version" Foreground="{DynamicResource MutedBrush}"/><TextBlock Text="{Binding CurrentAppVersion}" FontSize="22" Foreground="{DynamicResource TextBrush}"/></StackPanel>
+      <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="New version" Foreground="{DynamicResource MutedBrush}"/><TextBlock Text="{Binding LatestAppVersion}" FontSize="22" Foreground="{DynamicResource TextBrush}"/></StackPanel>
+     </Grid>
+     <TextBlock Text="{Binding UpdateStatus}" FontSize="18" TextWrapping="Wrap" Foreground="{DynamicResource AccentTextBrush}"/>
+     <TextBlock Text="{Binding LastUpdateOutcome}" FontSize="14" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"/>
+     <ProgressBar IsVisible="{Binding IsUpdateBusy}" IsIndeterminate="True" Height="5"/>
+     <ScrollViewer MaxHeight="180"><TextBlock Text="{Binding UpdateNotes}" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}" FontSize="15"/></ScrollViewer>
+     <TextBlock Text="{Binding UpdateInstallHint}" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" FontSize="15"/>
+     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+      <Button Content="Later / Cancel" Command="{Binding CloseUpdatesCommand}" Padding="18,16" CornerRadius="12"/>
+      <Button Grid.Column="1" Content="Check again" Command="{Binding CheckUpdatesCommand}" IsEnabled="{Binding CanCheckUpdate}" HorizontalAlignment="Right" Padding="18,16" CornerRadius="12"/>
+      <Button Grid.Column="2" Content="Download &amp; install" Command="{Binding InstallUpdateCommand}" IsEnabled="{Binding CanInstallUpdate}" Background="#F2AA7E" Foreground="#19191F" Padding="18,16" CornerRadius="12"/>
+     </Grid>
+    </StackPanel>
+   </Border>
+  </Viewbox>
+ </Border>
+</UserControl>

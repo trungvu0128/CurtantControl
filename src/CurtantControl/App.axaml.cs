@@ -28,11 +28,11 @@ public partial class App : Application
                 viewModel = new MainViewModel(settings,
                     commandStateStore: new CurtainCommandStateStore(settings.SimulateRelays),
                     razrStore: new RazrConfigurationStore(),
-                    cameraButtonSelectionStore: new CameraButtonSelectionStore(), switchPinStore: new SwitchPinStore());
+                    cameraButtonSelectionStore: new CameraButtonSelectionStore(), switchPinStore: new SwitchPinStore(), updateService: new GitHubAppUpdates());
             }
             catch (Exception error)
             {
-                viewModel = new MainViewModel(new PhotoboothSettings { CurtainOrderFrontToBack = [4, 3, 2, 1] }, switchPinStore: new SwitchPinStore()) { Status = $"Configuration error · using simulation: {error.Message}" };
+                viewModel = new MainViewModel(new PhotoboothSettings { CurtainOrderFrontToBack = [4, 3, 2, 1] }, switchPinStore: new SwitchPinStore(), updateService: new GitHubAppUpdates()) { Status = $"Configuration error · using simulation: {error.Message}" };
             }
             viewModel.EnterUserModeCommand.Execute(null);
             desktop.MainWindow = new MainWindow

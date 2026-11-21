@@ -44,14 +44,17 @@ internal static class UiPreview
         Console.WriteLine("Verified window closes after synchronous cleanup and stuck camera; repeated Stop never skips relay release.");
     }
 
-    public static void Render(string path, bool settingsScreen = false, int width = 1280, int height = 760, bool liveSample = false, bool light = false, bool hoverReconnect = false, string mode = "developer", bool hoverCurtain = false, bool verifyModeHold = false, bool nearestRelayOne = false, bool razrII = false, bool razrSetup = false, bool setupBottom = false, bool modelChooser = false, bool verifyRazrState = false, bool pinDialog = false)
+    public static void Render(string path, bool settingsScreen = false, int width = 1280, int height = 760, bool liveSample = false, bool light = false, bool hoverReconnect = false, string mode = "developer", bool hoverCurtain = false, bool verifyModeHold = false, bool nearestRelayOne = false, bool razrII = false, bool razrSetup = false, bool setupBottom = false, bool modelChooser = false, bool verifyRazrState = false, bool pinDialog = false, bool showUpdates = false)
     {
         AppBuilder.Configure<CurtantControl.App>().UseSkia()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .WithInterFont().SetupWithoutStarting();
+        var updates = new FakeUpdates();
+        updates.Result.TrySetResult(CurtantControl.Services.GitHubAppUpdates.ParseRelease(UpdateChecks.ReleaseJson(), "0.10.5"));
         var viewModel = new MainViewModel(new CurtantControl.Services.PhotoboothSettings { CurtainOrderFrontToBack = nearestRelayOne ? [1, 2, 3, 4] : [4, 3, 2, 1] },
             orderStore: new MemoryOrderStore(), cameraCatalog: new FakeCameraCatalog(),
-            cameraFactory: new FakeCameraRig().Create, themeStore: new PreviewThemeStore(), paletteStore: new PreviewPaletteStore());
+            cameraFactory: new FakeCameraRig().Create, themeStore: new PreviewThemeStore(), paletteStore: new PreviewPaletteStore(),
+            updateService: showUpdates ? updates : null);
         viewModel.IsDarkMode = !light;
         if (mode == "developer") viewModel.EnterDeveloperModeCommand.Execute(null);
         if (mode == "user") viewModel.EnterUserModeCommand.Execute(null);
@@ -78,6 +81,17 @@ internal static class UiPreview
             viewModel.CurtainSettings.SaveCommand.Execute(null);
         }
         if (modelChooser) viewModel.OpenRazrSettingsCommand.Execute(null);
+        if (showUpdates)
+        {
+            var checking = viewModel.CheckForUpdatesOnStartupAsync();
+            while (!checking.IsCompleted)
+            {
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Thread.Sleep(5);
+            }
+            checking.GetAwaiter().GetResult();
+            viewModel.OpenUpdatesCommand.Execute(null);
+        }
         if (pinDialog)
         {
             if (mode == "user") viewModel.OpenRazrSettingsCommand.Execute(null);

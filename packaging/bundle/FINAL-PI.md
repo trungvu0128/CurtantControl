@@ -124,3 +124,15 @@ kể cả máy trước đó đã lưu Light mode.
 
 Từ0.10.5: sửa Stop app chờ camera mãi. Nhả relay trước, giới hạn chờ camera3giây.
 Nếu app vẫn chưa thoát, xem `tail -n 30 ~/.local/share/CurtantControl/shutdown.log`.
+
+
+## Kiểm tra cập nhật (từ0.11.0)
+
+Mỗi lần mở app, tự kiểm tra GitHub Releases trong nền. Có bản mới sẽ hiện thông
+báo; không tự cài. Vào Developer mode → Updates → Download & install để tải,
+kiểm tra checksum, backup và cập nhật. App chỉ đóng sau khi gói đã chuẩn bị xong;
+cài xong tự mở lại. Cần phiên desktop pi và quyền sudo không hỏi mật khẩu sẵn có.
+Nếu thiếu thư viện OS, dùng bộ cài đầy đủ bằng terminal. Cài bộ đầy đủ0.11.0 một
+lần để có updater; bản small ba file trước đây không có helper tự cài.
+Repo: https://github.com/trungvu0128/CurtantControl/releases
+Log: journalctl --user -u 'curtantcontrol-update-*' --no-pager

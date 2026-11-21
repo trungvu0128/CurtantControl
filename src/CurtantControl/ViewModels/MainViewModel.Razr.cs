@@ -43,7 +43,7 @@ public partial class MainViewModel
     public bool ShowCurtainSettingsButton => Mode == ApplicationMode.Developer;
     public bool IsRazrII => _razr.Model == RazrModel.RazrII;
     public string RazrTitle => IsRazrII ? "CAMERA RAZR II" : "CAMERA RAZR I";
-    public bool CanSelectScene => !_disposed && !IsMoving && !IsSettingsOpen && !IsPinDialogOpen && (IsRazrII || _backgrounds is not null);
+    public bool CanSelectScene => !_disposed && !IsMoving && !IsSettingsOpen && !IsPinDialogOpen && !IsUpdatesOpen && !IsPreparingUpdate && (IsRazrII || _backgrounds is not null);
     public bool IsCurtainSettingsVisible => IsSettingsOpen && !IsRazrSettingsOpen && !IsModelSelectionOpen;
     public bool IsRazrIScreenVisible => IsPhotoboothScreenVisible && !IsRazrII;
     public bool IsRazrIIScreenVisible => IsPhotoboothScreenVisible && IsRazrII;

@@ -11,7 +11,15 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Opened += (_, _) => (DataContext as MainViewModel)?.StartCamera();
+        Opened += (_, _) =>
+        {
+            if (DataContext is not MainViewModel vm) return;
+            _updatesViewModel = vm;
+            vm.UpdateInstallReady += CloseForUpdate;
+            vm.StartCamera();
+            _ = vm.CheckForUpdatesOnStartupAsync();
+        };
+        Closed += (_, _) => { if (_updatesViewModel is not null) _updatesViewModel.UpdateInstallReady -= CloseForUpdate; };
         Closing += async (_, args) =>
         {
             if (_shutdownComplete) return;
@@ -40,6 +48,8 @@ public partial class MainWindow : Window
     }
 
     private bool _shuttingDown;
+    private MainViewModel? _updatesViewModel;
+    private void CloseForUpdate() => Close();
     private bool _shutdownComplete;
     private static void WriteShutdownLog(string message)
     {

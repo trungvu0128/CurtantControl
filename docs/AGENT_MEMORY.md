@@ -1221,3 +1221,19 @@ with GitHub noreply (verified account id72425062). Source remains same validated
 Initial source commit f2df459 pushed successfully; remote SHA verified. GitHub
 HEAD/default branch is codex/initial-import and local tracks origin branch. No
 release assets or updater workflow published as part of this repository setup.
+
+
+2026-11-21 user authorized GitHub Check Update and automatic check on app startup.
+0.11.0 targets public trungvu0128/CurtantControl Releases, once per window startup,
+nonblocking15s check; offline does not block User/camera, no automatic installation.
+Developer Updates modal checks/downloads/prepares full BusterARM32+SHA256 only.
+Worker apply-update.py in independent user systemd unit validates size/hash/paths/
+manifests/platform/libs/disk/sudo before READY, waits old PID exit then existing
+full backup/setup; restores snapshot on failure, execs installed/restored app.
+Cancel marker + unit stop handle cancellation/readiness race. Per-user update
+status and optional Tk progress; PIN/config/state preserved. Full bootstrap needed.
+Publisher script uses local Git credential helper; draft assets checked before
+publication, no token on Pi.97 C# checks and56 Python checks passed; UI renders
+inspected at1280x760/800x480. Python3.7 AST passed. Source version0.11.0.
+Full publish/live GitHub release verification pending. No actual Pi systemd/sudo/
+X11 update transaction run. See docs/UPDATES.md for operational requirements.

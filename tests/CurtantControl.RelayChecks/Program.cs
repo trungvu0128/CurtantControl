@@ -8,6 +8,8 @@ using System.Net.Http;
 using System.Text;
 
 if (args is ["--verify-window-close"]) { UiPreview.VerifyWindowClose(); return; }
+if (args is ["--render-updates", var updatesPath]) { UiPreview.Render(updatesPath, showUpdates: true); return; }
+if (args is ["--render-updates-small", var smallUpdatesPath]) { UiPreview.Render(smallUpdatesPath, showUpdates: true, width: 800, height: 480); return; }
 if (args is ["--render-pin", var pinPath]) { UiPreview.Render(pinPath, mode: "user", pinDialog: true); return; }
 if (args is ["--render-pin-small", var pinSmallPath]) { UiPreview.Render(pinSmallPath, mode: "user", pinDialog: true, width: 800, height: 480, light: true); return; }
 if (args is ["--render-pin-settings", var pinSettingsPath]) { UiPreview.Render(pinSettingsPath, mode: "developer", pinDialog: true); return; }
@@ -1981,6 +1983,7 @@ await Check("shutdown releases relays despite stuck camera discovery and cancell
         await vm.DisposeAsync();
     }
 });
+await UpdateChecks.Run(Check, Assert);
 Console.WriteLine($"Passed {checks} relay/background/UI/camera checks.");
 
 void TypePin(MainViewModel vm, string pin)

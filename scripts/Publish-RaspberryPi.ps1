@@ -89,7 +89,7 @@ try {
     [IO.File]::WriteAllText((Join-Path $packagePath 'README.md'), $readme, [Text.UTF8Encoding]::new($false))
     $launcher = [IO.File]::ReadAllText((Join-Path $repository 'packaging/raspberry-pi/start.sh')).Replace("`r`n", "`n").Replace('@BITS@', $bits)
     [IO.File]::WriteAllText((Join-Path $packagePath 'start.sh'), $launcher, [Text.UTF8Encoding]::new($false))
-    foreach ($name in @('install-shortcut.py', 'curtant-control.svg', 'diagnose.sh')) {
+    foreach ($name in @('install-shortcut.py', 'curtant-control.svg', 'diagnose.sh', 'apply-update.py')) {
         $content = [IO.File]::ReadAllText((Join-Path $repository "packaging/raspberry-pi/$name")).Replace("`r`n", "`n")
         [IO.File]::WriteAllText((Join-Path $packagePath $name), $content, [Text.UTF8Encoding]::new($false))
     }

@@ -494,3 +494,16 @@ force-kills the app or bypasses hardware release with a window timeout. Headless
 `--verify-window-close` checks synchronous and stubborn-camera cleanup, including
 repeated close and relay release. Exact Pi issue not yet reproduced: provided log
 shows keycheck successfully sent one WM close, so this fix targets app teardown.
+
+
+0.11.0: IAppUpdateService/GitHubAppUpdates is injected only in production; tests
+and previews default to NoAppUpdates. MainWindow starts one asynchronous check
+alongside camera startup. MainViewModel.Updates exposes a dismissible notice and
+Developer modal, never auto-installing. Version/tag and exact public GitHub asset
+selection, streamed SHA256/size validation and preparation are separate from UI.
+apply-update.py runs under a transient user systemd unit to survive keycheck
+restart, validates/extracts before READY, waits for parent exit then invokes the
+existing full backup/setup. Cancellation marker and unit stop prevent delayed
+installation after cancel. Documented limits, diagnostics and publishing steps:
+UPDATES.md. Publisher uses local Git credentials, uploads draft assets and checks
+server digests before publishing; never embeds a token in the Pi app.

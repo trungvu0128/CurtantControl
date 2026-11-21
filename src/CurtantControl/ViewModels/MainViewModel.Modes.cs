@@ -38,7 +38,7 @@ public partial class MainViewModel
     public bool IsUserScreenVisible => Mode == ApplicationMode.User && !IsSettingsOpen;
     public bool IsPhotoboothScreenVisible => IsDeveloperScreenVisible || IsUserScreenVisible;
     public Avalonia.Styling.ThemeVariant PhotoboothTheme => !IsDarkMode ? Avalonia.Styling.ThemeVariant.Light : Avalonia.Styling.ThemeVariant.Dark;
-    public bool CanChangeMode => !IsMoving && !_disposed && !IsPinDialogOpen;
+    public bool CanChangeMode => !IsMoving && !_disposed && !IsPinDialogOpen && !IsUpdatesOpen && !IsPreparingUpdate;
     public bool CanStart => (Mode is ApplicationMode.User or ApplicationMode.Developer) && CanSelectScene && (IsRazrII ? _pendingCameraPosition is not null : _pendingUserCurtain is not null);
     public string UserStatus => IsRazrII ? Status : _backgrounds is null ? "Controls unavailable. Please ask an operator."
         : IsMoving ? "Changing background…" : _pendingUserCurtain is not null ? "Ready · press START to apply your selection"
@@ -67,6 +67,7 @@ public partial class MainViewModel
     partial void OnStatusChanged(string value) => OnPropertyChanged(nameof(UserStatus));
     private void NotifyUserActions()
     {
+        NotifyUpdateActions();
         OnPropertyChanged(nameof(CanStart));
         OnPropertyChanged(nameof(UserStatus));
         OnPropertyChanged(nameof(CanChangeMode));

@@ -4,6 +4,10 @@ Source repository: [trungvu0128/CurtantControl](https://github.com/trungvu0128/C
 Generated releases and runtime files under `artifacts/` are excluded from Git;
 publish installer archives as release assets rather than committing them.
 
+The app checks GitHub Releases in the background at startup. Developer mode →
+Updates checks/downloads/installs a newer BusterARM32 bundle after verification
+and backup. See [update setup and publishing](docs/UPDATES.md).
+
 C# desktop starter using Avalonia 12.1.5, .NET 10, and CommunityToolkit.Mvvm.
 The same source builds for Windows and Raspberry Pi 4.
 
@@ -141,7 +145,7 @@ Developer Settings can choose whether R1/R2 or R7/R8 is nearest to the camera. S
 Buttons and Settings colors follow paper order: fixed background first, then M1,M2,M3,M4. Developer relay-layer order changes control sequencing without reordering buttons or moving curtains.
 
 
-Latest complete current-device bundle: `artifacts/bundles/CurtantControl-Final-v0.10.5-pi-buster-arm.tar.gz` (app plus keycheck, Buster32-bit/user pi). Extract on Pi and run `sh install.sh` as the desktop user. Online OS dependencies are installed automatically; existing hardware/color/layer settings are preserved.
+Latest complete current-device bundle: `artifacts/bundles/CurtantControl-Final-v0.11.0-pi-buster-arm.tar.gz` (app plus keycheck, Buster32-bit/user pi). Extract on Pi and run `sh install.sh` as the desktop user. Online OS dependencies are installed automatically; existing hardware/color/layer settings are preserved.
 
 ## Separate Razr controllers
 

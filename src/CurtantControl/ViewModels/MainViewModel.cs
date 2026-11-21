@@ -77,9 +77,11 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         Func<string, ICameraPreview>? cameraFactory = null, IThemePreferenceStore? themeStore = null,
         ICurtainPaletteStore? paletteStore = null, ICurtainCommandStateStore? commandStateStore = null,
         IRazrConfigurationStore? razrStore = null, Func<RazrConfiguration, IRazrHardware>? razrHardwareFactory = null,
-        ICameraButtonSelectionStore? cameraButtonSelectionStore = null, ISwitchPinStore? switchPinStore = null)
+        ICameraButtonSelectionStore? cameraButtonSelectionStore = null, ISwitchPinStore? switchPinStore = null,
+        IAppUpdateService? updateService = null)
     {
         _settings = settings;
+        _updates = updateService ?? new NoAppUpdates();
         _switchPinStore = switchPinStore ?? new SwitchPinStore(inMemory: true);
         _commandStateStore = commandStateStore;
         _paletteStore = paletteStore ?? new CurtainPaletteStore();
@@ -240,6 +242,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
     }
     partial void OnIsSettingsOpenChanged(bool value)
     {
+        NotifyUpdateActions();
         if (!value) { IsRazrSettingsOpen = false; IsModelSelectionOpen = false; }
         OnPropertyChanged(nameof(IsMainScreenVisible));
         OnPropertyChanged(nameof(IsCurtainSettingsVisible));
@@ -627,7 +630,8 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
             catch (Exception error) { ReportShutdown($"Relay release error: {error.Message}"); }
         }
         ReportShutdown("Hardware released; waiting for camera cleanup (maximum 3 seconds).");
-        var backgroundTasks = new[] { _backgroundPreviewTask, _discoveryTask, RefreshCamerasCommand.ExecutionTask,
+        var backgroundTasks = new[] { _backgroundPreviewTask, _discoveryTask, _startupUpdateTask, CheckUpdatesCommand.ExecutionTask,
+                _updateHandoff ? null : InstallUpdateCommand.ExecutionTask, RefreshCamerasCommand.ExecutionTask,
                 ReconnectCameraCommand.ExecutionTask, _cameraSwitchTask, _cameraTask }
             .Where(task => task is not null).Cast<Task>().Distinct();
         var cleanup = Task.WhenAll(backgroundTasks);

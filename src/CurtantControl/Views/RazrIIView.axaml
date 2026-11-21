@@ -38,6 +38,7 @@
    <StackPanel Orientation="Horizontal" Spacing="12">
     <Button Command="{Binding OpenRazrSettingsCommand}" IsEnabled="{Binding CanSwitchRazr}" Content="Switch Razr" Height="52" CornerRadius="12" />
     <Button IsVisible="{Binding IsDeveloperScreenVisible}" Command="{Binding EditSwitchPinCommand}" Content="Switch PIN" Height="52" CornerRadius="12" />
+    <Button IsVisible="{Binding IsDeveloperScreenVisible}" Command="{Binding OpenUpdatesCommand}" Content="Updates" Height="52" CornerRadius="12" />
     <TextBlock IsVisible="{Binding IsDeveloperScreenVisible}" Text="{Binding RelayMode}" FontSize="10" VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}" />
     <Button IsVisible="{Binding IsDeveloperScreenVisible}" Command="{Binding ChooseModeCommand}" IsEnabled="{Binding CanChangeMode}" Content="Modes" Height="52" MinWidth="90" Background="#292A32" Foreground="#D7D7DE" Padding="16,10" CornerRadius="12" VerticalAlignment="Center" />
     <Button IsVisible="{Binding ShowCurtainSettingsButton}" Command="{Binding OpenCameraSettingsCommand}" IsEnabled="{Binding CanSelectScene}" Content="⚙" FontSize="26" Height="52" Width="52" Padding="0" CornerRadius="12" VerticalAlignment="Center" AutomationProperties.Name="Camera angle settings" />
