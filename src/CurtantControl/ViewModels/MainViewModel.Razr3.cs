@@ -19,7 +19,7 @@ public partial class MainViewModel
     private readonly Razr3SceneController _razr3Scenes = new();
     private IRazr3ConfigurationStore _razr3Store = null!;
     private Func<RazrConfiguration, IRazrHardware> _razr3MotorFactory = null!;
-    private Razr3Configuration _razr3 = new();
+    private Razr3Configuration _razr3 = new Razr3Configuration().WithSimulationAngleDefaults();
     private IRazrHardware? _razr3Motor;
     private CurtainRelayController? _razr3ActiveRelays;
     private CurtainRelayController? _razr3SimulationRelays;
@@ -76,7 +76,7 @@ public partial class MainViewModel
         _razr3MotorFactory = motorFactory ?? (settings => new RazrHardware(settings));
         try
         {
-            var saved = _razr3Store.Load();
+            var saved = _razr3Store.Load().WithSimulationAngleDefaults();
             saved.Validate(_settings, Razr3Colors);
             _razr3 = saved;
         }

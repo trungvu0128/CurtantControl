@@ -119,6 +119,16 @@ internal static class UiPreview
                 view.IsEffectivelyVisible && (view is UserPhotoboothView || view is Razr3SettingsView));
             if (razr3 == "settings")
             {
+                var anglesAndWait = activeView.GetVisualDescendants().OfType<NumericUpDown>().Select(input => input.Value);
+                if (!anglesAndWait.SequenceEqual([70m, 180m, 3m]))
+                    throw new InvalidOperationException("RAZR 3 Settings should show both default angles and the wait time.");
+                var simulate = activeView.FindControl<CheckBox>("Razr3Simulation")!;
+                var confirmation = activeView.FindControl<CheckBox>("Razr3CalibrationConfirmation")!;
+                if (confirmation.IsVisible) throw new InvalidOperationException("Hardware confirmation is visible in simulation.");
+                simulate.IsChecked = false;
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                if (!confirmation.IsVisible) throw new InvalidOperationException("Hardware mode needs visible calibration confirmation.");
+                simulate.IsChecked = true;
                 var lists = activeView.GetVisualDescendants().OfType<ComboBox>().ToArray();
                 if (!lists.Select(list => (list.SelectedItem as CurtantControl.Services.CurtainColorPreset)?.Key)
                     .SequenceEqual(["white", "blue", "green", "purple", "gray"]))

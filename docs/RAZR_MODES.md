@@ -108,7 +108,10 @@ by these source changes.
    Changing colors while the current session already has a completed Room 1
    motor command skips the rotation and wait. Opening a new session or switching
    models requires reestablishing the direction on the next Start.
-2. In **Settings**, check the five backdrop assignments against the physical booth.
+2. **Settings** shows the two camera angles, settling time, simulation switch and
+   five backdrop assignments. The 70°–180° reference range is prefilled as Outside
+   70° and Room 1 180° for new or blank simulation profiles. Existing saved angles
+   and travel limits take precedence. Check the backdrop assignments against the booth.
    The defaults are White for the fixed backdrop, Sky Blue for M1, Green for M2,
    Purple for M3 and Gray for M4. Settings edits these five assignments independently
    of Razr I. The relay pairs, pulse settings and layer order come from the existing
@@ -118,9 +121,10 @@ by these source changes.
    stop the legacy Python hardware controller before running the C# outputs.
    Measure both target angles, verify the mechanical limits and full-scale calibration,
    and measure a settling time that covers travel in both directions. Enter those
-   values in RAZR 3 Settings and confirm the wiring, travel and timing before
-   clearing **Simulate motor and curtains** and saving. Unset angles use 45° and 135°
-   in simulation. Hardware mode requires two explicit measured angles and a positive wait.
+   values in RAZR 3 Settings. Clear **Simulate motor and curtains** to reveal the
+   hardware confirmation, confirm the measured setup and save. Hardware mode requires
+   two angles and a positive wait. To adjust the travel limits or DAC and I²C
+   calibration fields, edit the per-user `razr3.json` with the app closed.
 4. On the device, verify that the camera and screen move together, Outside leaves
    the curtains in place, and an indoor curtain begins after the assembly has
    settled. **Ready** means the command sequence finished. The motor has no angle

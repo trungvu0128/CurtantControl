@@ -8,6 +8,8 @@ namespace CurtantControl.Services;
 public sealed record Razr3Configuration
 {
     public const int OutsideScene = 5;
+    public const double DefaultOutsideAngle = 70;
+    public const double DefaultRoomAngle = 180;
     public double? OutsideAngle { get; set; }
     public double? RoomAngle { get; set; }
     public double SettleSeconds { get; set; } = 3;
@@ -28,11 +30,24 @@ public sealed record Razr3Configuration
 
     public string[] GetColorKeys() => [FixedColor, M1Color, M2Color, M3Color, M4Color];
 
+    public Razr3Configuration WithSimulationAngleDefaults()
+    {
+        if (!Simulate || (OutsideAngle is not null && RoomAngle is not null)) return this;
+        var outside = OutsideAngle ?? DefaultOutsideAngle;
+        var room = RoomAngle ?? DefaultRoomAngle;
+        if (outside >= MinimumAngle && outside <= MaximumAngle &&
+            room >= MinimumAngle && room <= MaximumAngle && outside != room)
+            return this with { OutsideAngle = outside, RoomAngle = room, CalibrationConfirmed = false };
+
+        // Keep the previous simulation targets for a saved profile whose travel limits exclude the new defaults.
+        return this with { OutsideAngle = OutsideAngle ?? 45, RoomAngle = RoomAngle ?? 135, CalibrationConfirmed = false };
+    }
+
     public RazrConfiguration MotorSettings() => new()
     {
         Model = RazrModel.RazrIII,
-        Position1Angle = OutsideAngle ?? 45,
-        Position2Angle = RoomAngle ?? 135,
+        Position1Angle = OutsideAngle ?? DefaultOutsideAngle,
+        Position2Angle = RoomAngle ?? DefaultRoomAngle,
         SettleSeconds = SettleSeconds,
         MinimumAngle = MinimumAngle,
         MaximumAngle = MaximumAngle,
@@ -54,10 +69,12 @@ public sealed record Razr3Configuration
             throw new InvalidDataException("Invalid RAZR 3 scene selection.");
         if (!double.IsFinite(SettleSeconds) || SettleSeconds is < 0 or > 30)
             throw new InvalidDataException("Set the wait time between 0 and 30 seconds.");
+        if (OutsideAngle is null || RoomAngle is null)
+            throw new InvalidDataException("Enter both the Outside and Room 1 angles.");
         if (!Simulate)
         {
-            if (OutsideAngle is null || RoomAngle is null || SettleSeconds <= 0)
-                throw new InvalidDataException("Enter both measured angles and a positive wait time for hardware mode.");
+            if (SettleSeconds <= 0)
+                throw new InvalidDataException("Set a positive wait time for hardware mode.");
             if (installation.SimulateRelays || installation.ActiveLow is null ||
                 installation.BcmPinsByChannel is not { Length: 8 } pins ||
                 pins.Distinct().Count() != 8 || pins.Any(pin => pin is < 0 or > 27 or 2 or 3))

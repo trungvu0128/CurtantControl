@@ -20,7 +20,7 @@ internal static class Razr3Checks
             var baseline = output.Events.Count;
             assert(vm.Razr3Outside.IsSelected && vm.Razr3Backgrounds.All(scene => !scene.IsSelected) && motor.Angles.Count == 0, "Staging changed hardware or left two selections.");
             await vm.StartBackgroundCommand.ExecuteAsync(null);
-            assert(motor.Angles.SequenceEqual([45d]) && output.Events.Count == baseline && vm.Status == "Ready" && !vm.CanStart, "Outside touched relays or missed Ready.");
+            assert(motor.Angles.SequenceEqual([70d]) && output.Events.Count == baseline && vm.Status == "Ready" && !vm.CanStart, "Outside touched relays or missed Ready.");
             vm.SelectRazr3SceneCommand.Execute(vm.Razr3Backgrounds[2]);
             var start = Stopwatch.GetTimestamp();
             var run = vm.StartBackgroundCommand.ExecuteAsync(null);
@@ -32,14 +32,14 @@ internal static class Razr3Checks
             await run;
             var firstPulse = output.Events.Skip(baseline).First(e => e.On);
             assert(firstPulse.Channel == 3 && Stopwatch.GetElapsedTime(start, firstPulse.Timestamp) >= TimeSpan.FromMilliseconds(70), "Green pulsed before settling or used the wrong relay.");
-            assert(motor.Angles.SequenceEqual([45d, 135d]) && vm.Razr3Backgrounds[2].IsSelected && !vm.IsSettingsOpen, "A repeated Start or mid-run navigation changed the sequence.");
+            assert(motor.Angles.SequenceEqual([70d, 180d]) && vm.Razr3Backgrounds[2].IsSelected && !vm.IsSettingsOpen, "A repeated Start or mid-run navigation changed the sequence.");
             await Apply(vm, 3);
             await Apply(vm, 0);
             assert(motor.Angles.Count == 2 && output.Events.Where(e => e.On).Select(e => e.Channel).SequenceEqual([3, 4, 5, 6]), "Room 1 color change resent the motor or changed relay ordering.");
             assert(vm.Status == "Ready" && !vm.CanStart && output.AllOff, "White failed to complete.");
             await Apply(vm, 5);
             await Apply(vm, 2);
-            assert(motor.Angles.SequenceEqual([45d, 135d, 45d, 135d]), "Returning from Outside did not establish Room 1 again.");
+            assert(motor.Angles.SequenceEqual([70d, 180d, 70d, 180d]), "Returning from Outside did not establish Room 1 again.");
         });
 
         await check("RAZR 3 uses four physical slot IDs and honors both curtain layer orders", async () =>
@@ -54,7 +54,7 @@ internal static class Razr3Checks
                 foreach (var id in order) await Apply(vm, id);
                 await Apply(vm, 0);
                 var expected = order.SelectMany(id => new[] { id * 2 - 1, id * 2 });
-                assert(output.Events.Where(e => e.On).Select(e => e.Channel).SequenceEqual(expected) && motor.Angles.SequenceEqual([135d]), "Wrong open/close IDs or order across the five backgrounds.");
+                assert(output.Events.Where(e => e.On).Select(e => e.Channel).SequenceEqual(expected) && motor.Angles.SequenceEqual([180d]), "Wrong open/close IDs or order across the five backgrounds.");
             }
         });
 
@@ -110,6 +110,8 @@ internal static class Razr3Checks
                 vm.EnterRazr3Command.Execute(null);
                 var razrIName = vm.BackgroundOptions[2].Name;
                 vm.OpenSettingsCommand.Execute(null);
+                assert(vm.Razr3Draft.OutsideAngle == 70 && vm.Razr3Draft.RoomAngle == 180, "A legacy blank profile did not populate both documented defaults.");
+                vm.Razr3Draft.RoomAngle = 165;
                 vm.Razr3Draft.M2Color = "pink";
                 profile.FailSave = true;
                 vm.SaveRazr3SettingsCommand.Execute(null);
@@ -127,7 +129,19 @@ internal static class Razr3Checks
             restarted.EnterUserModeCommand.Execute(null);
             assert(restarted.IsRazr3 && restarted.Razr3Backgrounds[2].IsSelected && restarted.CanStart && nextMotor.Angles.Count == 0, "Restart lost the staged scene or started movement.");
             await restarted.StartBackgroundCommand.ExecuteAsync(null);
-            assert(nextMotor.Angles.SequenceEqual([135d]), "Restart skipped the first camera targeting step.");
+            assert(nextMotor.Angles.SequenceEqual([165d]), "Restart skipped the first camera targeting step or replaced the saved angle.");
+        });
+
+        await check("RAZR 3 fills legacy simulation angles within the saved limits and requires explicit hardware angles", () =>
+        {
+            var partial = new Razr3Configuration { OutsideAngle = 80, M2Color = "pink", CalibrationConfirmed = true }.WithSimulationAngleDefaults();
+            assert(partial.OutsideAngle == 80 && partial.RoomAngle == 180 && partial.M2Color == "pink", "Defaulting lost a saved setting.");
+            assert(!partial.CalibrationConfirmed, "A new default must require hardware confirmation.");
+            var limited = new Razr3Configuration { MaximumAngle = 150 }.WithSimulationAngleDefaults();
+            assert(limited.OutsideAngle == 45 && limited.RoomAngle == 135, "Defaulting ignored saved travel limits.");
+            var hardware = new Razr3Configuration { Simulate = false }.WithSimulationAngleDefaults();
+            assert(hardware.OutsideAngle is null && hardware.RoomAngle is null, "Defaults must be scoped to simulation profiles.");
+            return Task.CompletedTask;
         });
 
         await check("RAZR 3 real motor invalidates RAZR II history before writing and simulation isolates GPIO", async () =>

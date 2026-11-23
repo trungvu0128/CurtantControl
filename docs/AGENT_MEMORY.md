@@ -1287,3 +1287,17 @@ RAZR 3 scenario completed.
 2026-11-23 replaced the low-resolution Open landscape crop with a 1280×720
 Lake Bled photo and enabled high-quality scaling for the tile. Source and CC0
 license are in DEVELOPMENT.md. Debug, Release and both screen renders passed.
+
+2026-11-23 published v0.12.0 on GitHub from d91cded. Debug and Release Buster ARM32
+builds, 104 app checks, 61 Python checks and the RAZR 3 headless render passed.
+Verified the full archive manifests and applied the small update to a copy of the
+public v0.11.3 bundle with customized settings. GitHub's four asset digests matched
+the local builds, and the downloaded patch matched its SHA-256. Physical Pi
+installation and hardware calibration remain pending.
+
+2026-11-23 simplified RAZR 3 Settings to angles, settling time, simulation and
+five backdrop assignments. The reference gives 70°–180° without direction labels.
+Empty simulation profiles prefill Outside 70° and Room 1 180° where allowed by
+saved limits. Prefilling resets hardware confirmation. Advanced calibration stays
+in razr3.json. Debug, Release, 105 app checks, 800×480 Settings rendering and
+Buster ARM32/.NET 8 cross-publish passed.
