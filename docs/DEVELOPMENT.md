@@ -15,6 +15,7 @@ The Open landscape tile embeds a 1280×720 Lake Bled photograph by Dimitry Aniki
 The RelayChecks preview commands are `--render-razr3`, `--render-razr3-small` and
 `--render-razr3-settings`, each followed by an output PNG path. The first runs
 the Outside, Green, Purple and White simulation and writes a `.log` beside the PNG.
+`--render-razr3-landscape-focus` renders Open landscape selected with keyboard focus.
 
 ## Architecture
 

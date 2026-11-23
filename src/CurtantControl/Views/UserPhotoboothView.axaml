@@ -46,7 +46,25 @@
   <Style Selector="Button.photo:pointerover"><Setter Property="Opacity" Value="0.9" /></Style>
   <Style Selector="Button.photo:pressed"><Setter Property="Opacity" Value="0.75" /></Style>
   <Style Selector="Button.photo:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
-  <Style Selector="Button.landscape /template/ ContentPresenter#PhotoContentPresenter"><Setter Property="Margin" Value="0" /></Style>
+  <Style Selector="Button.photo.landscape">
+   <Setter Property="FocusAdorner" Value="{x:Null}" />
+   <Setter Property="Template">
+    <ControlTemplate>
+     <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}"
+             BoxShadow="0 5 8 0 #B0000000" ClipToBounds="True">
+      <Grid>
+       <ContentPresenter Name="PhotoContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                         HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+       <Border CornerRadius="{TemplateBinding CornerRadius}" BorderBrush="{TemplateBinding BorderBrush}"
+               BorderThickness="{TemplateBinding BorderThickness}" IsHitTestVisible="False" />
+      </Grid>
+     </Border>
+    </ControlTemplate>
+   </Setter>
+  </Style>
+  <Style Selector="Button.photo.landscape:focus-visible:not(.selected)">
+   <Setter Property="BorderBrush" Value="#BCEAF7" /><Setter Property="BorderThickness" Value="4" />
+  </Style>
   <Style Selector="Button.userReconnect:pointerover /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#BDD6FA" /><Setter Property="Foreground" Value="#202334" /></Style>
   <Style Selector="Button.userReconnect:pressed /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#9CBDEA" /><Setter Property="Foreground" Value="#202334" /></Style>
  </UserControl.Styles>

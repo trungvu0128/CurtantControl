@@ -10,6 +10,7 @@ using System.Text;
 if (args is ["--verify-window-close"]) { UiPreview.VerifyWindowClose(); return; }
 if (args is ["--render-razr3", var razr3Path]) { UiPreview.Render(razr3Path, liveSample: true, razr3: "demo"); return; }
 if (args is ["--render-razr3-small", var razr3SmallPath]) { UiPreview.Render(razr3SmallPath, width: 800, height: 480, liveSample: true, mode: "user", razr3: "screen"); return; }
+if (args is ["--render-razr3-landscape-focus", var landscapeFocusPath]) { UiPreview.Render(landscapeFocusPath, mode: "user", razr3: "landscape-focus"); return; }
 if (args is ["--render-razr3-settings", var razr3SettingsPath]) { UiPreview.Render(razr3SettingsPath, width: 800, height: 480, razr3: "settings"); return; }
 if (args is ["--render-updates", var updatesPath]) { UiPreview.Render(updatesPath, showUpdates: true); return; }
 if (args is ["--render-updates-small", var smallUpdatesPath]) { UiPreview.Render(smallUpdatesPath, showUpdates: true, width: 800, height: 480); return; }

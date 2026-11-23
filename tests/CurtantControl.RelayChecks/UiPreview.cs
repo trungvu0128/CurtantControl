@@ -147,6 +147,20 @@ internal static class UiPreview
                 var previewOrigin = preview.TranslatePoint(default, activeView)!.Value;
                 if (Math.Abs(startOrigin.Y - outsideOrigin.Y) > 1 || startOrigin.X >= outsideOrigin.X || startOrigin.Y >= previewOrigin.Y)
                     throw new InvalidOperationException("RAZR 3 Start and Open landscape must sit side by side above the camera preview.");
+                if (razr3 == "landscape-focus")
+                {
+                    outside.Focus(Avalonia.Input.NavigationMethod.Tab);
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    if (!outside.IsFocused || outside.BorderBrush is not Avalonia.Media.ISolidColorBrush focusBrush ||
+                        focusBrush.Color != Avalonia.Media.Color.Parse("#BCEAF7"))
+                        throw new InvalidOperationException("Open landscape must show its rounded keyboard focus border.");
+                    outside.Command!.Execute(outside.CommandParameter);
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    if (!outside.IsFocused || !outside.Classes.Contains("selected") ||
+                        outside.BorderBrush is not Avalonia.Media.ISolidColorBrush selectionBrush ||
+                        selectionBrush.Color != Avalonia.Media.Color.Parse("#FF3038"))
+                        throw new InvalidOperationException("Selected Open landscape must keep its red outline while focused.");
+                }
                 if (razr3 == "demo")
                 {
                     foreach (var scene in new[] { viewModel.Razr3Outside, viewModel.Razr3Backgrounds[2], viewModel.Razr3Backgrounds[3], viewModel.Razr3Backgrounds[0] })

@@ -1301,3 +1301,14 @@ Empty simulation profiles prefill Outside 70° and Room 1 180° where allowed by
 saved limits. Prefilling resets hardware confirmation. Advanced calibration stays
 in razr3.json. Debug, Release, 105 app checks, 800×480 Settings rendering and
 Buster ARM32/.NET 8 cross-publish passed.
+
+2026-11-23 published v0.12.1 from 2c8a6d6. The Buster bundle passed 105 app
+checks, 61 Python checks and the Settings render. Applied the small update to a
+copy of the public v0.12.0 bundle and checked backups plus saved angle, palette
+and relay settings. GitHub tag and all four asset digests matched the local build.
+The public patch download passed SHA-256 verification. No physical Pi run.
+
+2026-11-23 moved the Open landscape outline above its photo so the rounded
+corners stay visible. The tile uses a rounded keyboard focus indicator and keeps
+the red outline when selected with focus. Debug and Release passed. The rendered
+focus state showed red at all four corners, and the RAZR I preview matched its reference.
