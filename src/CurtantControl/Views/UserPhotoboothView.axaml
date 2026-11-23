@@ -6,6 +6,27 @@
   <Style Selector="UserControl.developer"><Setter Property="Background" Value="{DynamicResource PageBrush}" /></Style>
   <Style Selector="Grid.photobooth"><Setter Property="Height" Value="680" /></Style>
   <Style Selector="Grid.photobooth.developer"><Setter Property="Height" Value="880" /></Style>
+  <Style Selector="Grid.sceneColumns"><Setter Property="ColumnSpacing" Value="44" /></Style>
+  <Style Selector="Grid.photobooth.razr3 Grid.sceneColumns"><Setter Property="ColumnSpacing" Value="36" /></Style>
+  <Style Selector="Grid#Swatches, StackPanel#RelayDiagnostics"><Setter Property="Width" Value="550" /></Style>
+  <Style Selector="Grid.photobooth.razr3 Grid#Swatches, Grid.photobooth.razr3 StackPanel#RelayDiagnostics"><Setter Property="Width" Value="582" /></Style>
+  <Style Selector="Grid.photobooth.razr3:not(.developer) Grid#SwatchHeading"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="Grid.photobooth.razr3.developer Grid#CameraPane"><Setter Property="Margin" Value="0,22,0,0" /></Style>
+  <Style Selector="Grid#CameraPicker"><Setter Property="Margin" Value="0,0,0,14" /></Style>
+  <Style Selector="Grid.photobooth.razr3:not(.developer) Grid#CameraPicker"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="Grid#CameraLabel">
+   <Setter Property="Height" Value="22" /><Setter Property="Margin" Value="0,0,0,14" />
+  </Style>
+  <Style Selector="Grid.photobooth.razr3 Grid#CameraLabel">
+   <Setter Property="Grid.Row" Value="5" /><Setter Property="HorizontalAlignment" Value="Right" />
+   <Setter Property="Height" Value="24" /><Setter Property="Margin" Value="0" />
+  </Style>
+  <Style Selector="Grid#CameraDiagnostics">
+   <Setter Property="Grid.Row" Value="4" /><Setter Property="Margin" Value="0,0,0,14" />
+  </Style>
+  <Style Selector="Grid.photobooth.razr3 Grid#CameraDiagnostics">
+   <Setter Property="Grid.Row" Value="6" /><Setter Property="Margin" Value="0" />
+  </Style>
   <Style Selector="Button.photo">
    <Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="VerticalAlignment" Value="Stretch" />
    <Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalContentAlignment" Value="Center" />
@@ -25,31 +46,34 @@
   <Style Selector="Button.photo:pointerover"><Setter Property="Opacity" Value="0.9" /></Style>
   <Style Selector="Button.photo:pressed"><Setter Property="Opacity" Value="0.75" /></Style>
   <Style Selector="Button.photo:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+  <Style Selector="Button.landscape /template/ ContentPresenter#PhotoContentPresenter"><Setter Property="Margin" Value="0" /></Style>
   <Style Selector="Button.userReconnect:pointerover /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#BDD6FA" /><Setter Property="Foreground" Value="#202334" /></Style>
   <Style Selector="Button.userReconnect:pressed /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#9CBDEA" /><Setter Property="Foreground" Value="#202334" /></Style>
  </UserControl.Styles>
  <Grid>
  <ThemeVariantScope RequestedThemeVariant="{Binding PhotoboothTheme}">
  <Viewbox Stretch="Uniform">
- <Grid Classes="photobooth" Classes.developer="{Binding IsDeveloperScreenVisible}" Width="1200" TextElement.Foreground="{DynamicResource TextBrush}" Margin="32" RowDefinitions="76,*,Auto" RowSpacing="20">
+ <Grid Classes="photobooth" Classes.developer="{Binding IsDeveloperScreenVisible}" Classes.razr3="{Binding IsRazr3}" Width="1200" TextElement.Foreground="{DynamicResource TextBrush}" Margin="32" RowDefinitions="76,*,Auto" RowSpacing="20">
   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="24">
-   <Viewbox Width="217.35" Height="58.59" Stretch="Uniform" VerticalAlignment="Center"><views:RazrBadge Text="CAMERA RAZR I" /></Viewbox>
+   <Viewbox Width="217.35" Height="58.59" Stretch="Uniform" VerticalAlignment="Center"><views:RazrBadge Text="{Binding RazrTitle}" /></Viewbox>
    <Viewbox Grid.Column="1" Height="49.14" Stretch="Uniform" HorizontalAlignment="Right" VerticalAlignment="Center">
    <StackPanel Orientation="Horizontal" Spacing="12">
     <Button Command="{Binding OpenRazrSettingsCommand}" IsEnabled="{Binding CanSwitchRazr}" Content="Switch Razr" Height="52" CornerRadius="12" />
     <Button IsVisible="{Binding IsDeveloperScreenVisible}" Command="{Binding EditSwitchPinCommand}" Content="Switch PIN" Height="52" CornerRadius="12" />
     <Button IsVisible="{Binding IsDeveloperScreenVisible}" Command="{Binding OpenUpdatesCommand}" Content="Updates" Height="52" CornerRadius="12" />
-    <TextBlock IsVisible="{Binding IsDeveloperScreenVisible}" Text="{Binding RelayMode}" FontSize="10" VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}" />
+    <TextBlock IsVisible="{Binding IsDeveloperScreenVisible}" Text="{Binding HardwareSummary}" FontSize="10" VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}" />
     <Button IsVisible="{Binding IsDeveloperScreenVisible}" Command="{Binding ChooseModeCommand}" IsEnabled="{Binding CanChangeMode}" Content="Modes" Height="52" MinWidth="90" Background="#292A32" Foreground="#D7D7DE" Padding="16,10" CornerRadius="12" VerticalAlignment="Center" />
-    <Button IsVisible="{Binding ShowCurtainSettingsButton}" Command="{Binding OpenSettingsCommand}" IsEnabled="{Binding CanSelectScene}" Content="⚙" FontSize="26" Height="52" Width="52" Padding="0" CornerRadius="12" VerticalAlignment="Center" AutomationProperties.Name="Curtain settings" />
+    <Button IsVisible="{Binding ShowCurtainSettingsButton}" Command="{Binding OpenSettingsCommand}" IsEnabled="{Binding CanSelectScene}" Content="⚙" FontSize="26" Height="52" Width="52" Padding="0" CornerRadius="12" VerticalAlignment="Center" AutomationProperties.Name="Photobooth settings" />
     <views:BrandLogo Classes="tight" Width="150" Height="52" VerticalAlignment="Center" />
    </StackPanel>
    </Viewbox>
   </Grid>
-  <Grid Grid.Row="1" ColumnDefinitions="550,*" ColumnSpacing="44">
-   <Grid RowDefinitions="22,*,24" RowSpacing="0">
-    <TextBlock IsVisible="{Binding IsDeveloperScreenVisible}" Text="BACKGROUND 1 → 5" FontSize="11" Foreground="{DynamicResource MutedBrush}" LetterSpacing="1" />
-    <ItemsControl Grid.Row="1" ItemsSource="{Binding BackgroundOptions}" IsEnabled="{Binding CanSelectScene}">
+  <Grid Grid.Row="1" Classes="sceneColumns" ColumnDefinitions="Auto,*">
+   <Grid x:Name="Swatches" RowDefinitions="Auto,*,24" RowSpacing="0">
+    <Grid x:Name="SwatchHeading" Height="22">
+     <TextBlock IsVisible="{Binding IsDeveloperScreenVisible}" Text="BACKGROUND 1 → 5" FontSize="11" Foreground="{DynamicResource MutedBrush}" LetterSpacing="1" />
+    </Grid>
+    <ItemsControl Grid.Row="1" ItemsSource="{Binding PhotoboothBackgrounds}" IsEnabled="{Binding CanSelectScene}">
      <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="5" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
      <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CurtainOption">
       <Button Classes="photo" Classes.selected="{Binding IsSelected}" Background="{Binding Color}" Command="{Binding SelectCommand}" CommandParameter="{Binding}" Margin="0,0,0,14">
@@ -57,17 +81,25 @@
       </Button>
      </DataTemplate></ItemsControl.ItemTemplate>
     </ItemsControl>
-    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center"><Ellipse Fill="{Binding SelectionColor}" Width="8" Height="8" /><TextBlock Text="{Binding SelectionLabel}" FontSize="13" Foreground="{DynamicResource SecondaryBrush}" /></StackPanel>
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+     <Ellipse Fill="{Binding SelectionColor}" Width="8" Height="8" />
+     <TextBlock IsVisible="{Binding IsRazrI}" Text="{Binding SelectionLabel}" FontSize="13" Foreground="{DynamicResource SecondaryBrush}" />
+     <TextBlock IsVisible="{Binding IsRazr3}" Text="{Binding Status}" ToolTip.Tip="{Binding Status}" MaxWidth="515" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="{DynamicResource SecondaryBrush}" />
+    </StackPanel>
    </Grid>
-   <Grid Grid.Column="1" RowDefinitions="22,Auto,*,Auto,100" RowSpacing="14">
-    <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center"><Ellipse Width="10" Height="10" Fill="{Binding CameraIndicator}" /><TextBlock Text="{Binding UserCameraLabel}" FontSize="16" FontWeight="Bold" /></StackPanel>
-    <Grid Grid.Row="1" IsVisible="{Binding IsDeveloperScreenVisible}" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+   <Grid x:Name="CameraPane" Grid.Column="1" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
+    <Grid x:Name="CameraLabel">
+     <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center"><Ellipse Width="10" Height="10" Fill="{Binding CameraIndicator}" /><TextBlock Text="{Binding UserCameraLabel}" FontSize="16" FontWeight="Bold" /></StackPanel>
+    </Grid>
+    <Grid x:Name="CameraPicker" Grid.Row="2">
+     <Grid IsVisible="{Binding IsDeveloperScreenVisible}" ColumnDefinitions="*,Auto" ColumnSpacing="12">
      <ComboBox ItemsSource="{Binding Cameras}" SelectedItem="{Binding SelectedCamera, Mode=TwoWay}" PlaceholderText="Select a camera" HorizontalAlignment="Stretch" MinHeight="40" CornerRadius="12" AutomationProperties.Name="Preview camera">
       <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" x:CompileBindings="False" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
      </ComboBox>
      <Button Grid.Column="1" Command="{Binding RefreshCamerasCommand}" Content="Refresh" Padding="18,8" CornerRadius="12" />
+     </Grid>
     </Grid>
-    <Border Grid.Row="2" CornerRadius="22" Background="#303239" BorderBrush="#5A5C65" BorderThickness="1" ClipToBounds="True">
+    <Border x:Name="CameraPreview" Grid.Row="3" Margin="0,0,0,14" CornerRadius="22" Background="#303239" BorderBrush="#5A5C65" BorderThickness="1" ClipToBounds="True">
      <Grid><Image Source="{Binding CameraFrame}" Stretch="UniformToFill" /><Image Source="{Binding BackgroundPreview}" IsVisible="{Binding IsBackgroundPreviewVisible}" Stretch="UniformToFill" />
       <StackPanel IsVisible="{Binding IsUserCameraOffline}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
        <TextBlock Text="◎" FontSize="52" Foreground="#868A97" HorizontalAlignment="Center" /><TextBlock Text="Waiting for your camera" FontSize="18" Foreground="#E0E1E8" HorizontalAlignment="Center" />
@@ -75,28 +107,48 @@
       </StackPanel>
      </Grid>
     </Border>
-    <Grid Grid.Row="3">
+    <Grid x:Name="CameraDiagnostics">
      <TextBlock IsVisible="{Binding IsDeveloperScreenVisible}" Text="{Binding CameraStatus}" ToolTip.Tip="{Binding CameraStatus}" Foreground="{DynamicResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" />
     </Grid>
-    <Grid Grid.Row="4" ColumnDefinitions="*,Auto,*" ColumnSpacing="20">
-     <Button Grid.Column="1" Classes="photo" Background="#E01E2F" FontSize="38" Width="220" Command="{Binding StartBackgroundCommand}" IsEnabled="{Binding CanStart}">
+    <Grid Grid.Row="5" Height="100" IsVisible="{Binding IsRazrI}">
+     <Button Classes="photo" Width="220" HorizontalAlignment="Center" Background="#E01E2F" Command="{Binding StartBackgroundCommand}" IsEnabled="{Binding CanStart}">
       <TextBlock Text="START" FontSize="38" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+     </Button>
+    </Grid>
+    <Grid Grid.Row="1" Height="190" Margin="0,0,0,16" ColumnDefinitions="5*,6.5*" ColumnSpacing="16" IsVisible="{Binding IsRazr3}">
+     <Button x:Name="PhotoboothStartButton" Classes="photo" Background="#3B98B2" Command="{Binding StartBackgroundCommand}" IsEnabled="{Binding CanStart}">
+      <TextBlock Text="Start" FontSize="38" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+     </Button>
+     <Button x:Name="OpenLandscapeButton" Grid.Column="1" Classes="photo landscape" Classes.selected="{Binding Razr3Outside.IsSelected}"
+             Command="{Binding SelectRazr3SceneCommand}" CommandParameter="{Binding Razr3Outside}" IsEnabled="{Binding CanSelectScene}"
+             Background="#315F72" AutomationProperties.Name="Open landscape">
+      <Grid>
+       <Image Source="avares://CurtantControl/Assets/razr3-landscape.jpg" Stretch="UniformToFill"
+              RenderOptions.BitmapInterpolationMode="HighQuality" />
+       <Border Background="#66132631" VerticalAlignment="Top" Padding="8,14">
+        <TextBlock Foreground="White" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="185" Text="Open landscape" />
+       </Border>
+      </Grid>
      </Button>
     </Grid>
    </Grid>
   </Grid>
   <Border Grid.Row="2" IsVisible="{Binding IsDeveloperScreenVisible}" Height="180" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
-   <Grid ColumnDefinitions="550,*" ColumnSpacing="44">
-    <StackPanel Spacing="6">
+   <Grid Classes="sceneColumns" ColumnDefinitions="Auto,*">
+    <StackPanel x:Name="RelayDiagnostics" Spacing="6">
      <TextBlock Text="{Binding HardwareSummary}" FontSize="11" Foreground="{DynamicResource MutedBrush}" LetterSpacing="1.5" />
-     <ItemsControl ItemsSource="{Binding BackgroundOptions}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CurtainOption">
+     <ItemsControl IsVisible="{Binding IsRazrI}" ItemsSource="{Binding BackgroundOptions}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CurtainOption">
       <Grid ColumnDefinitions="16,*,Auto" Margin="0,0,0,4"><Ellipse Fill="{Binding Color}" Width="7" Height="7" HorizontalAlignment="Left" /><TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="13" /><TextBlock Grid.Column="2" Text="{Binding CommandStatus}" FontSize="13" Foreground="{DynamicResource SecondaryBrush}" /></Grid>
      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
      <TextBlock Text="{Binding Status}" Foreground="{DynamicResource MutedBrush}" FontSize="11" TextWrapping="Wrap" MaxHeight="28" />
     </StackPanel>
     <Grid Grid.Column="1" RowDefinitions="26,*" RowSpacing="6">
      <Grid ColumnDefinitions="*,Auto"><TextBlock Text="ACTIVITY LOG · TEMPORARY" FontSize="11" Foreground="{DynamicResource MutedBrush}" LetterSpacing="1.5" VerticalAlignment="Center" />
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"><Button Command="{Binding CheckRelaysCommand}" Content="Check relays" FontSize="11" Padding="10,3" CornerRadius="6" /><Button Command="{Binding ClearLogCommand}" Content="Clear" FontSize="11" Padding="10,3" CornerRadius="6" /></StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+       <Button IsVisible="{Binding IsRazrI}" Command="{Binding CheckRelaysCommand}" Content="Check relays" FontSize="11" Padding="10,3" CornerRadius="6" />
+       <Button IsVisible="{Binding IsRazr3}" Command="{Binding StopCommand}" IsEnabled="{Binding IsMoving}" Content="Stop" FontSize="11" Padding="10,3" CornerRadius="6" />
+       <Button Command="{Binding ClearLogCommand}" Content="Clear" FontSize="11" Padding="10,3" CornerRadius="6" />
+      </StackPanel>
      </Grid>
      <Border Grid.Row="1" Background="{DynamicResource LogBrush}" CornerRadius="10" Padding="12,8">
       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><ItemsControl ItemsSource="{Binding ActivityLog}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" FontSize="12" Foreground="{DynamicResource SecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,5" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>

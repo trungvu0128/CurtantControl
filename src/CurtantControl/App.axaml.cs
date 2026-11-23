@@ -28,6 +28,7 @@ public partial class App : Application
                 viewModel = new MainViewModel(settings,
                     commandStateStore: new CurtainCommandStateStore(settings.SimulateRelays),
                     razrStore: new RazrConfigurationStore(),
+                    razr3Store: new Razr3ConfigurationStore(),
                     cameraButtonSelectionStore: new CameraButtonSelectionStore(), switchPinStore: new SwitchPinStore(), updateService: new GitHubAppUpdates());
             }
             catch (Exception error)

@@ -81,7 +81,7 @@ try {
 
     $packageDocs = Join-Path $packagePath 'docs'
     New-Item -ItemType Directory -Path $packageDocs -Force | Out-Null
-    foreach ($name in @('PHOTOBOOTH_UI.md', 'RELAY_CONTROL.md')) {
+    foreach ($name in @('PHOTOBOOTH_UI.md', 'RELAY_CONTROL.md', 'RAZR_MODES.md')) {
         Copy-Item -LiteralPath (Join-Path $repository "docs/$name") -Destination $packageDocs
     }
     $readmeTemplate = if ($LegacyBuster) { 'README-buster.md' } else { 'README.md' }

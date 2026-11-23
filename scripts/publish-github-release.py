@@ -18,9 +18,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('version')
     parser.add_argument('--small-from', action='append', default=[], help='Attach the verified small update from this installed version')
+    parser.add_argument('--notes-file', type=Path, help='Prepend release-specific Markdown notes')
     args = parser.parse_args()
     if not re.fullmatch(r'\d+\.\d+\.\d+', args.version):
         raise ValueError('Use MAJOR.MINOR.PATCH.')
+    notes = args.notes_file.read_text(encoding='utf-8-sig').strip() if args.notes_file else ''
     root = Path(__file__).resolve().parents[1]
     if subprocess.check_output(['git','status','--porcelain'],cwd=str(root)).strip():
         raise ValueError('Commit source changes before publishing a release.')
@@ -75,6 +77,8 @@ def main():
           'Install once with sh install.sh. Existing settings/PIN/state preserved.\n'
           'Legacy .NET8 build; cross-published and tested on host, not verified on a physical Pi.\n\n'
           'Source commit: '+commit)
+    if notes:
+        body = notes + '\n\n' + body
     release=existing or api('/repos/'+REPO+'/releases','POST',{'tag_name':tag,'target_commitish':commit,'name':'CurtantControl '+args.version,
                                                'body':body,'draft':True,'prerelease':False})
     for file in files:

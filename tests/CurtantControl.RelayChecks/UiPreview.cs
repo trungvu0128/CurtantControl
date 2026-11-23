@@ -44,20 +44,30 @@ internal static class UiPreview
         Console.WriteLine("Verified window closes after synchronous cleanup and stuck camera; repeated Stop never skips relay release.");
     }
 
-    public static void Render(string path, bool settingsScreen = false, int width = 1280, int height = 760, bool liveSample = false, bool light = false, bool hoverReconnect = false, string mode = "developer", bool hoverCurtain = false, bool verifyModeHold = false, bool nearestRelayOne = false, bool razrII = false, bool razrSetup = false, bool setupBottom = false, bool modelChooser = false, bool verifyRazrState = false, bool pinDialog = false, bool showUpdates = false, bool showStartupUpdate = false)
+    public static void Render(string path, bool settingsScreen = false, int width = 1280, int height = 760, bool liveSample = false, bool light = false, bool hoverReconnect = false, string mode = "developer", bool hoverCurtain = false, bool verifyModeHold = false, bool nearestRelayOne = false, bool razrII = false, bool razrSetup = false, bool setupBottom = false, bool modelChooser = false, bool verifyRazrState = false, bool pinDialog = false, bool showUpdates = false, bool showStartupUpdate = false, string? razr3 = null)
     {
         AppBuilder.Configure<CurtantControl.App>().UseSkia()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .WithInterFont().SetupWithoutStarting();
         var updates = new FakeUpdates();
         if (showUpdates) updates.Result.TrySetResult(CurtantControl.Services.GitHubAppUpdates.ParseRelease(UpdateChecks.ReleaseJson(), "0.10.5"));
-        var viewModel = new MainViewModel(new CurtantControl.Services.PhotoboothSettings { CurtainOrderFrontToBack = nearestRelayOne ? [1, 2, 3, 4] : [4, 3, 2, 1] },
+        var viewModel = new MainViewModel(new CurtantControl.Services.PhotoboothSettings
+            { CurtainOrderFrontToBack = nearestRelayOne ? [1, 2, 3, 4] : [4, 3, 2, 1], ActivationMilliseconds = razr3 is null ? 500 : 25 },
             orderStore: new MemoryOrderStore(), cameraCatalog: new FakeCameraCatalog(),
             cameraFactory: new FakeCameraRig().Create, themeStore: new PreviewThemeStore(), paletteStore: new PreviewPaletteStore(),
             updateService: showUpdates || showStartupUpdate ? updates : null);
         viewModel.IsDarkMode = !light;
         if (mode == "developer") viewModel.EnterDeveloperModeCommand.Execute(null);
         if (mode == "user") viewModel.EnterUserModeCommand.Execute(null);
+        if (razr3 is not null)
+        {
+            viewModel.EnterDeveloperModeCommand.Execute(null);
+            viewModel.OpenRazrSettingsCommand.Execute(null);
+            viewModel.EnterRazr3Command.Execute(null);
+            if (razr3 == "settings") viewModel.OpenSettingsCommand.Execute(null);
+            if (mode == "user") viewModel.EnterUserModeCommand.Execute(null);
+            if (razr3 == "screen") viewModel.SelectRazr3SceneCommand.Execute(viewModel.Razr3Backgrounds[2]);
+        }
         if (razrII || razrSetup)
         {
             viewModel.EnterDeveloperModeCommand.Execute(null);
@@ -103,6 +113,52 @@ internal static class UiPreview
             WindowDecorations = WindowDecorations.None
         };
         window.Show();
+        if (razr3 is not null)
+        {
+            var activeView = window.GetVisualDescendants().OfType<UserControl>().Single(view =>
+                view.IsEffectivelyVisible && (view is UserPhotoboothView || view is Razr3SettingsView));
+            if (razr3 == "settings")
+            {
+                var lists = activeView.GetVisualDescendants().OfType<ComboBox>().ToArray();
+                if (!lists.Select(list => (list.SelectedItem as CurtantControl.Services.CurtainColorPreset)?.Key)
+                    .SequenceEqual(["white", "blue", "green", "purple", "gray"]))
+                    throw new InvalidOperationException("RAZR 3 settings show the wrong configured colors.");
+                lists[2].SelectedItem = viewModel.Razr3Colors.Single(color => color.Key == "pink");
+                if (viewModel.Razr3Draft.M2Color != "pink") throw new InvalidOperationException("Color edit did not update the draft.");
+                lists[2].SelectedItem = viewModel.Razr3Colors.Single(color => color.Key == "green");
+            }
+            else
+            {
+                var start = activeView.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "PhotoboothStartButton");
+                var outside = activeView.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "OpenLandscapeButton");
+                var preview = activeView.GetVisualDescendants().OfType<Border>().Single(border => border.Name == "CameraPreview");
+                var startOrigin = start.TranslatePoint(default, activeView)!.Value;
+                var outsideOrigin = outside.TranslatePoint(default, activeView)!.Value;
+                var previewOrigin = preview.TranslatePoint(default, activeView)!.Value;
+                if (Math.Abs(startOrigin.Y - outsideOrigin.Y) > 1 || startOrigin.X >= outsideOrigin.X || startOrigin.Y >= previewOrigin.Y)
+                    throw new InvalidOperationException("RAZR 3 Start and Open landscape must sit side by side above the camera preview.");
+                if (razr3 == "demo")
+                {
+                    foreach (var scene in new[] { viewModel.Razr3Outside, viewModel.Razr3Backgrounds[2], viewModel.Razr3Backgrounds[3], viewModel.Razr3Backgrounds[0] })
+                    {
+                        var choice = activeView.GetVisualDescendants().OfType<Button>().Single(button => button.CommandParameter == scene);
+                        choice.Command!.Execute(choice.CommandParameter);
+                        if (!start.IsEnabled) throw new InvalidOperationException("Start stayed disabled after staging a scene.");
+                        start.Command!.Execute(null);
+                        var timer = System.Diagnostics.Stopwatch.StartNew();
+                        while (viewModel.IsMoving && timer.Elapsed < TimeSpan.FromSeconds(5))
+                        {
+                            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                            Thread.Sleep(5);
+                        }
+                        if (viewModel.Status != "Ready") throw new InvalidOperationException($"RAZR 3 did not complete {scene.Name}: {viewModel.Status}");
+                    }
+                    Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+                    File.WriteAllLines(Path.ChangeExtension(path, ".log"), viewModel.ActivityLog.Reverse());
+                }
+                else if (!start.IsEnabled) throw new InvalidOperationException("The small RAZR 3 screen does not expose Start for the selected scene.");
+            }
+        }
         if (showStartupUpdate && !window.GetVisualDescendants().OfType<TextBlock>().Any(text =>
                 text.Text == "Checking for updates…" && text.IsEffectivelyVisible))
             throw new InvalidOperationException("The startup update banner is not visible on the opened window.");
@@ -213,7 +269,7 @@ internal static class UiPreview
             if (!viewModel.IsModelSelectionOpen || viewModel.IsPinDialogOpen) throw new InvalidOperationException("Touch PIN verification failed.");
             Console.WriteLine("Verified actual onscreen numeric buttons, delete, Cancel and authenticated chooser.");
         }
-        if ((mode == "user" || mode == "developer") && liveSample)
+        if ((mode == "user" || mode == "developer") && liveSample && razr3 is null)
         {
             foreach (var preset in new CurtantControl.Services.CurtainPaletteStore().Load().Colors)
             {

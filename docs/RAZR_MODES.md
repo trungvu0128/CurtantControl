@@ -2,9 +2,11 @@
 
 ## Model selection and independent screens
 
-Use **Switch Razr** in User or Developer mode. Choose **Razr I** or **Razr II**; the selected controller
-persists for the next launch. Back leaves the current model unchanged. The **Modes** button is visible only in Developer. User opens the User/Developer
-chooser by holding the bottom-right corner for three seconds. Model selection is separate from both settings pages. Switching during movement is blocked.
+Use **Switch Razr** in User or Developer mode to choose **Razr I**, **Razr II**, or
+**Camera RAZR 3**. User mode prompts for the switch PIN. The selected controller
+persists for the next launch. Use **Modes** in Developer or hold the bottom-right
+corner for three seconds in User mode to change modes. Model switching is disabled
+during movement.
 
 - **Razr I** has its own five-background curtain screen and curtain settings.
   The gear opens **Razr I · Curtain setup**: fixed-background/four-motor colors
@@ -23,9 +25,11 @@ chooser by holding the bottom-right corner for three seconds. Model selection is
   Both retain live preview and the User/Developer distinction. Choosing a model
   does not choose a different physical capture device. The corner gesture works
   on either User screen.
-- **Neither controller contains light controls, timers or light settings.** Old
-  light properties in razr.json are ignored and omitted the next time it is saved.
-  No light GPIOs are opened. Razr III is not implemented.
+- **Camera RAZR 3** uses the angle motor and four curtain pairs in sequence.
+  **Open landscape** turns the shared camera and screen assembly toward Outside
+  and leaves the curtains in place. The five color buttons all face Room 1.
+  Select a scene, then press **Start** in either mode. The preview stays live.
+  Start finishes at **Ready** after scene preparation. See the setup below.
 
 The AXAML screens are UserPhotoboothView (Razr I), RazrIIView,
 CurtainSettingsView (Razr I), and RazrIISettingsView. RazrModelSelectionView is
@@ -77,15 +81,15 @@ Protocol references: [MCP4725 manufacturer datasheet](https://ww1.microchip.com/
 
 ## Persistence and verification
 
-Curtain colors/layers remain in colors.json and deployment relay settings remain
-in photobooth.json. Camera-position settings and the selected model use per-user
+Razr I curtain colors and the shared layer order use `colors.json`. Deployment
+relay settings use `photobooth.json`. Razr II camera settings and the selected model use per-user
 razr.json: %LOCALAPPDATA%/CurtantControl/razr.json on Windows, normally
-~/.local/share/CurtantControl/razr.json on Linux. Saving camera settings does not
-rewrite curtain files; switching models retains both sets of values. Missing files
+~/.local/share/CurtantControl/razr.json on Linux. Camera RAZR 3 uses `razr3.json`
+in the same directory for its independent colors, motor settings and selection. Missing files
 default to Razr I with simulated camera motor settings. Test/design composition
 uses an in-memory store; application composition injects the persistent store.
 
-Run the normal relay checks for both model paths, independent settings,
+Run the normal relay checks for all three model paths, independent settings,
 failed-save/cancel isolation, model switching, old light-field migration,
 Razr II startup without curtain GPIO, camera retry and disposal cancellation.
 Render helper options: --render-razr2, --render-razr-setup, --render-razr-motor,
@@ -94,6 +98,35 @@ and existing --render-user / --render-user-settings for Razr I.
 Host tests and cross-publishing do not establish physical Raspberry Pi, motor,
 I2C electrical or Buster runtime acceptance. No installer bundle is regenerated
 by these source changes.
+
+## Camera RAZR 3 setup and acceptance
+
+1. In **Developer → Switch Razr**, select **Camera RAZR 3**. The default profile
+   simulates both the motor and curtains, including installations with GPIO enabled
+   for Razr I. Try **Outside → Green → Purple → White**, pressing **Start** after
+   each selection. The activity log shows the rotation, wait and backdrop steps.
+   Changing colors while the current session already has a completed Room 1
+   motor command skips the rotation and wait. Opening a new session or switching
+   models requires reestablishing the direction on the next Start.
+2. In **Settings**, check the five backdrop assignments against the physical booth.
+   The defaults are White for the fixed backdrop, Sky Blue for M1, Green for M2,
+   Purple for M3 and Gray for M4. Settings edits these five assignments independently
+   of Razr I. The relay pairs, pulse settings and layer order come from the existing
+   installation. The layer order is editable in Razr I Developer Settings.
+3. For hardware operation, set `SimulateRelays` to `false` in `photobooth.json`
+   using the verified polarity and eight BCM pins. Reserve GPIO2/3 for I²C and
+   stop the legacy Python hardware controller before running the C# outputs.
+   Measure both target angles, verify the mechanical limits and full-scale calibration,
+   and measure a settling time that covers travel in both directions. Enter those
+   values in RAZR 3 Settings and confirm the wiring, travel and timing before
+   clearing **Simulate motor and curtains** and saving. Unset angles use 45° and 135°
+   in simulation. Hardware mode requires two explicit measured angles and a positive wait.
+4. On the device, verify that the camera and screen move together, Outside leaves
+   the curtains in place, and an indoor curtain begins after the assembly has
+   settled. **Ready** means the command sequence finished. The motor has no angle
+   feedback, and the relays report timed commands. Developer **Stop** cancels
+   the remaining steps and releases active curtain relays. The DAC retains its target,
+   so stopping the software leaves motor power under the hardware controller.
 
 ## Last Razr II button
 

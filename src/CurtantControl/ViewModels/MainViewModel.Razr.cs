@@ -38,19 +38,23 @@ public partial class MainViewModel
     partial void OnRazrDraftChanged(RazrConfiguration value) { RefreshCameraChoices(); OnPropertyChanged(nameof(SelectedControlMode)); }
     public IReadOnlyList<RazrModel> RazrModels { get; } = Enum.GetValues<RazrModel>();
     public IReadOnlyList<CurtainOption> CameraPositions { get; private set; } = Array.Empty<CurtainOption>();
-    public IReadOnlyList<CurtainOption> SceneOptions => IsRazrII ? CameraPositions : BackgroundOptions;
+    public IReadOnlyList<CurtainOption> PhotoboothBackgrounds => IsRazr3 ? Razr3Backgrounds : BackgroundOptions;
+    public IReadOnlyList<CurtainOption> SceneOptions => IsRazrII ? CameraPositions : IsRazr3
+        ? Razr3Backgrounds.Append(Razr3Outside).ToArray() : BackgroundOptions;
     public int SceneRows => IsRazrII ? 2 : 5;
     public bool ShowCurtainSettingsButton => Mode == ApplicationMode.Developer;
+    public bool IsRazrI => _razr.Model == RazrModel.RazrI;
     public bool IsRazrII => _razr.Model == RazrModel.RazrII;
-    public string RazrTitle => IsRazrII ? "CAMERA RAZR II" : "CAMERA RAZR I";
-    public bool CanSelectScene => !_disposed && !IsMoving && !IsSettingsOpen && !IsPinDialogOpen && !IsUpdatesOpen && !IsPreparingUpdate && (IsRazrII || _backgrounds is not null);
-    public bool IsCurtainSettingsVisible => IsSettingsOpen && !IsRazrSettingsOpen && !IsModelSelectionOpen;
-    public bool IsRazrIScreenVisible => IsPhotoboothScreenVisible && !IsRazrII;
+    public string RazrTitle => IsRazrII ? "CAMERA RAZR II" : IsRazr3 ? "CAMERA RAZR 3" : "CAMERA RAZR I";
+    public bool CanSelectScene => !_disposed && !IsMoving && !IsSettingsOpen && !IsPinDialogOpen && !IsUpdatesOpen && !IsPreparingUpdate && (!IsRazrI || _backgrounds is not null);
+    public bool IsCurtainSettingsVisible => IsSettingsOpen && !IsRazrSettingsOpen && !IsRazr3SettingsOpen && !IsModelSelectionOpen;
+    public bool IsRazrIScreenVisible => IsPhotoboothScreenVisible && IsRazrI;
     public bool IsRazrIIScreenVisible => IsPhotoboothScreenVisible && IsRazrII;
+    public bool IsCurtainPhotoboothScreenVisible => IsRazrIScreenVisible || IsRazr3ScreenVisible;
     [ObservableProperty] public partial bool IsModelSelectionOpen { get; set; }
     public string SceneHeading => IsRazrII ? "CAMERA POSITIONS" : "BACKGROUND 1 → 5";
     public string HardwareSummary => IsRazrII
-        ? $"{ControlModeChoices.First(c => c.Mode == _razr.ControlMode).Name} · {(IsSimulatedCameraCommand ? "SIMULATION" : "HARDWARE")}" : RelayMode;
+        ? $"{ControlModeChoices.First(c => c.Mode == _razr.ControlMode).Name} · {(IsSimulatedCameraCommand ? "SIMULATION" : "HARDWARE")}" : IsRazr3 ? Razr3HardwareSummary : RelayMode;
     public sealed record ControlModeChoice(RazrControlMode Mode, string Name);
     public IReadOnlyList<ControlModeChoice> ControlModeChoices { get; } = new[]
     {
@@ -184,7 +188,7 @@ public partial class MainViewModel
         if (IsRazrII) RestoreCameraSelection();
         OnPropertyChanged(nameof(SelectionColor));
         OnPropertyChanged(nameof(CameraPositions));
-        foreach (var property in new[] { nameof(SceneOptions), nameof(SceneRows), nameof(IsRazrII), nameof(RazrTitle), nameof(SceneHeading), nameof(HardwareSummary), nameof(CanSelectScene), nameof(ShowCurtainSettingsButton), nameof(IsRazrIScreenVisible), nameof(IsRazrIIScreenVisible) })
+        foreach (var property in new[] { nameof(SceneOptions), nameof(PhotoboothBackgrounds), nameof(SceneRows), nameof(IsRazrI), nameof(IsRazrII), nameof(IsRazr3), nameof(RazrTitle), nameof(SceneHeading), nameof(HardwareSummary), nameof(CanSelectScene), nameof(ShowCurtainSettingsButton), nameof(IsRazrIScreenVisible), nameof(IsRazrIIScreenVisible), nameof(IsRazr3ScreenVisible), nameof(IsCurtainPhotoboothScreenVisible) })
             OnPropertyChanged(property);
     }
 
@@ -203,7 +207,7 @@ public partial class MainViewModel
     {
         CancelUserDraft();
         _pendingCameraPosition = null;
-        RazrNotice = "Select the curtain controller or the camera-angle controller.";
+        RazrNotice = "";
         IsModelSelectionOpen = true;
         IsSettingsOpen = true;
     }
@@ -213,6 +217,7 @@ public partial class MainViewModel
     {
         _switchAuthorized = false;
         IsRazrSettingsOpen = false;
+        IsRazr3SettingsOpen = false;
         IsModelSelectionOpen = false;
         IsSettingsOpen = false;
         if (IsRazrII) RestoreCameraSelection();
@@ -365,10 +370,12 @@ public partial class MainViewModel
 
     [RelayCommand] private void EnterRazrI() => SelectRazrModel(RazrModel.RazrI);
     [RelayCommand] private void EnterRazrII() => SelectRazrModel(RazrModel.RazrII);
+    [RelayCommand] private void EnterRazr3() => SelectRazrModel(RazrModel.RazrIII);
 
     private void SelectRazrModel(RazrModel model)
     {
         if (!CanSwitchRazr || !IsModelSelectionOpen || (Mode == ApplicationMode.User && !_switchAuthorized)) return;
+        if (model == RazrModel.RazrIII && IsRazr3) { CancelRazrSettings(); return; }
         try
         {
             var updated = _razr.Copy();
@@ -380,6 +387,7 @@ public partial class MainViewModel
             try { _razrHardware.Dispose(); } catch (Exception error) { AddLog($"Camera controller release failed: {error.Message}"); }
             _razrHardware = nextHardware;
             CancelUserDraft();
+            ResetRazr3Motor();
             _razr = updated;
             if (IsRazrII)
             {
@@ -387,9 +395,20 @@ public partial class MainViewModel
                 catch (Exception error) { AddLog($"Curtain output release failed: {error.Message}"); }
                 finally { _relays = null; _backgrounds = null; }
             }
-            else if (_relays is null) InitializeCurtainRelays();
+            else if (IsRazrI && _backgrounds is null) InitializeCurtainRelays(_relays);
             RebuildCameraPositions();
-            if (!IsRazrII) { RestoreSavedSelection(); RestoreBackgroundButtonSelection(); Status = "Choose your background"; }
+            if (IsRazrI)
+            {
+                foreach (var background in BackgroundOptions) background.IsSelected = false;
+                RestoreSavedSelection();
+                RestoreBackgroundButtonSelection();
+                Status = "Choose your background";
+            }
+            else if (IsRazr3)
+            {
+                SetRazr3Selection(_razr3Selection);
+                Status = _razr3Selection is null ? "Choose a scene" : "Press Start to apply your selection";
+            }
             else Status = "Choose a camera position";
             CancelRazrSettings();
             NotifyUserActions();

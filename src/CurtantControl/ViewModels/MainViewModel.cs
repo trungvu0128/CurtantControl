@@ -78,7 +78,8 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         ICurtainPaletteStore? paletteStore = null, ICurtainCommandStateStore? commandStateStore = null,
         IRazrConfigurationStore? razrStore = null, Func<RazrConfiguration, IRazrHardware>? razrHardwareFactory = null,
         ICameraButtonSelectionStore? cameraButtonSelectionStore = null, ISwitchPinStore? switchPinStore = null,
-        IAppUpdateService? updateService = null)
+        IAppUpdateService? updateService = null, IRazr3ConfigurationStore? razr3Store = null,
+        Func<RazrConfiguration, IRazrHardware>? razr3MotorFactory = null)
     {
         _settings = settings;
         _updates = updateService ?? new NoAppUpdates();
@@ -164,12 +165,13 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
         catch (Exception error) { AddLog($"Could not restore curtain commands: {error.Message}"); }
         InitializeRazr(razrStore, razrHardwareFactory, cameraButtonSelectionStore);
-        if (!IsRazrII) RestoreBackgroundButtonSelection(stage: false);
-        if (!IsRazrII) InitializeCurtainRelays(relayController);
+        InitializeRazr3(razr3Store, razr3MotorFactory);
+        if (IsRazrI) RestoreBackgroundButtonSelection(stage: false);
+        if (IsRazrI) InitializeCurtainRelays(relayController);
         else _relays = relayController; // A supplied controller is already initialized by its caller.
     }
 
-    private void InitializeCurtainRelays(CurtainRelayController? relayController = null)
+    private void InitializeCurtainRelays(CurtainRelayController? relayController = null, bool diagnose = true)
     {
         try
         {
@@ -177,8 +179,12 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
             _backgrounds = new BackgroundController(_relays, _settings.CurtainOrderFrontToBack,
                 TimeSpan.FromMilliseconds(_settings.ActivationMilliseconds),
                 ReadCurrentCurtainState);
-            AddLog("Startup · outputs initialized OFF; reading control signals");
-            CheckRelays();
+            _relaySetupError = null;
+            if (diagnose)
+            {
+                AddLog("Startup · outputs initialized OFF; reading control signals");
+                CheckRelays();
+            }
         }
         catch (Exception error)
         {
@@ -186,8 +192,8 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
             try { _relays?.Dispose(); } catch { }
             _relays = null;
             _backgrounds = null;
-            Status = $"Relay setup failed: {error.Message}";
-            AddLog(Status);
+            if (diagnose) Status = $"Relay setup failed: {error.Message}";
+            AddLog($"Relay setup failed: {error.Message}");
         }
     }
 
@@ -243,7 +249,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
     partial void OnIsSettingsOpenChanged(bool value)
     {
         NotifyUpdateActions();
-        if (!value) { IsRazrSettingsOpen = false; IsModelSelectionOpen = false; }
+        if (!value) { IsRazrSettingsOpen = false; IsRazr3SettingsOpen = false; IsModelSelectionOpen = false; }
         OnPropertyChanged(nameof(IsMainScreenVisible));
         OnPropertyChanged(nameof(IsCurtainSettingsVisible));
         OnPropertyChanged(nameof(CanSelectScene));
@@ -252,6 +258,8 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(IsPhotoboothScreenVisible));
         OnPropertyChanged(nameof(IsRazrIScreenVisible));
         OnPropertyChanged(nameof(IsRazrIIScreenVisible));
+        OnPropertyChanged(nameof(IsRazr3ScreenVisible));
+        OnPropertyChanged(nameof(IsCurtainPhotoboothScreenVisible));
         OnPropertyChanged(nameof(IsUserScreenVisible));
         NotifyUserActions();
     }
@@ -267,6 +275,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
     {
         if (_disposed || IsMoving || Mode == ApplicationMode.User || IsPinDialogOpen) return;
         if (IsRazrII) { OpenCameraSettings(); return; }
+        if (IsRazr3) { OpenRazr3Settings(); return; }
         IsRazrSettingsOpen = false;
         CurtainSettings.Begin(_palette, _settings.CurtainOrderFrontToBack, Mode == ApplicationMode.Developer);
         IsSettingsOpen = true;
@@ -305,6 +314,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
                 for (var index = 0; index < DisplayCurtains.Count; index++) DisplayCurtains[index].DisplayLevel = index + 1;
                 BackgroundOptions = new[] { FixedWhiteBackground }.Concat(Curtains).ToArray();
                 OnPropertyChanged(nameof(BackgroundOptions));
+                OnPropertyChanged(nameof(PhotoboothBackgrounds));
                 OnPropertyChanged(nameof(SceneOptions));
                 OnPropertyChanged(nameof(DisplayCurtains));
                 ReconcileLayerOrderSelection();
@@ -455,7 +465,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private async Task SelectCurtainAsync(CurtainOption? curtain)
     {
-        if (IsRazrII) return;
+        if (!IsRazrI) return;
         if (curtain is null || IsMoving || IsSettingsOpen || _disposed || _backgrounds is null) return;
         if (!BackgroundOptions.Contains(curtain)) return;
         var selected = _razr.Copy();
@@ -485,7 +495,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private async Task CloseAllAsync()
     {
-        if (IsRazrII || IsMoving || IsSettingsOpen || _disposed || _backgrounds is null) return;
+        if (!IsRazrI || IsMoving || IsSettingsOpen || _disposed || _backgrounds is null) return;
         CancelUserDraft();
         if (Curtains.All(c => c.CommandStatus == "Closed")) return;
         _selectionRestored = false;
@@ -517,14 +527,21 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
     [RelayCommand]
     private void Stop()
     {
+        if (IsRazr3 && !IsMoving) return;
         ClearBackgroundPreview();
         _movement?.Cancel();
-        try { _relays?.StopAll(); Status = "Stopped · curtain position unknown"; }
+        try
+        {
+            (IsRazr3 ? _razr3ActiveRelays : _relays)?.StopAll();
+            Status = IsRazr3 ? "RAZR 3 stopped" : "Stopped · curtain position unknown";
+        }
         catch (Exception error) { Status = $"Stop failed: {error.Message}"; }
         AddLog(Status);
     }
 
-    private void ReportCurtain(CurtainCommandUpdate update)
+    private void ReportCurtain(CurtainCommandUpdate update) => ReportCurtain(update, Curtains[update.Curtain - 1].Name);
+
+    private void ReportCurtain(CurtainCommandUpdate update, string name)
     {
         lock (_logSync)
         {
@@ -545,7 +562,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
                     }
                 }
             }
-            AddLog($"{curtain.Name} · {update.State}" +
+            AddLog($"{name} · {update.State}" +
                 (update.State is CurtainCommandState.Opened or CurtainCommandState.Closed
                     ? " (command complete)" : ""));
         }
@@ -615,6 +632,8 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
         try { _relays?.StopAll(); }
         catch (Exception error) { ReportShutdown($"Relay stop error: {error.Message}"); }
+        try { _razr3SimulationRelays?.StopAll(); }
+        catch (Exception error) { ReportShutdown($"Simulation relay stop error: {error.Message}"); }
         try
         {
             var movementTasks = new[] { StartBackgroundCommand.ExecutionTask, SelectCurtainCommand.ExecutionTask, CloseAllCommand.ExecutionTask }
@@ -624,6 +643,9 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         catch (Exception error) { ReportShutdown($"Movement cleanup: {error.Message}"); }
         finally
         {
+            ResetRazr3Motor();
+            try { _razr3SimulationRelays?.Dispose(); }
+            catch (Exception error) { ReportShutdown($"Simulation relay release error: {error.Message}"); }
             try { _razrHardware.Dispose(); }
             catch (Exception error) { ReportShutdown($"Camera controller shutdown error: {error.Message}"); }
             try { _relays?.Dispose(); }

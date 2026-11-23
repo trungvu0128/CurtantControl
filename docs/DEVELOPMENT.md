@@ -1,5 +1,21 @@
 # Development guide
 
+## Camera RAZR 3
+
+`Razr3SceneController` coordinates motor targeting, settling and background application.
+The view model owns the selected scene and shares real curtain control and command
+state with Razr I. `Razr3ConfigurationStore` persists independent color assignments
+and motor settings in per-user `razr3.json`. RAZR I and RAZR 3 share
+`UserPhotoboothView` and the live camera session. In RAZR 3, Start and Open
+landscape sit above the camera preview. See [setup and calibration](RAZR_MODES.md#camera-razr-3-setup-and-acceptance).
+
+The Open landscape tile embeds a 1280×720 Lake Bled photograph by Dimitry Anikin.
+[Wikimedia Commons source and CC0 license](https://commons.wikimedia.org/wiki/File:Lake_Bled,_Slovenia_(28439609952).jpg)
+
+The RelayChecks preview commands are `--render-razr3`, `--render-razr3-small` and
+`--render-razr3-settings`, each followed by an output PNG path. The first runs
+the Outside, Green, Purple and White simulation and writes a `.log` beside the PNG.
+
 ## Architecture
 
 The solution contains a cross-platform desktop project at
@@ -322,7 +338,8 @@ serve Razr I only; RazrIIView and RazrIISettingsView serve camera position contr
 only. RazrModelSelectionView is the independent installed-model chooser. Shared
 preview/mode/theme services remain reused. MainViewModel.Razr owns model selection
 and camera settings/START; no light state, timers, GPIO service or settings remain.
-IRazrHardware exposes camera movement only. Curtain GPIO initializes only in Razr I.
+IRazrHardware exposes camera movement. Razr I initializes its curtain controller
+on entry. RAZR 3 opens the curtain controller only when an indoor command needs it.
 Camera settings/model persist per user; curtain settings retain their existing files.
 Use --artifacts-path artifacts/razr-validation if the normal Debug executable is locked.
 

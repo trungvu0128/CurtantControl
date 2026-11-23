@@ -145,12 +145,15 @@ Developer Settings can choose whether R1/R2 or R7/R8 is nearest to the camera. S
 Buttons and Settings colors follow paper order: fixed background first, then M1,M2,M3,M4. Developer relay-layer order changes control sequencing without reordering buttons or moving curtains.
 
 
-Latest complete current-device bundle: `artifacts/bundles/CurtantControl-Final-v0.11.0-pi-buster-arm.tar.gz` (app plus keycheck, Buster32-bit/user pi). Extract on Pi and run `sh install.sh` as the desktop user. Online OS dependencies are installed automatically; existing hardware/color/layer settings are preserved.
+The complete Pi Buster ARM32 bundle includes the app and keycheck. Extract it on
+the Pi and run `sh install.sh` as the desktop user. The installer adds OS dependencies
+and carries forward existing hardware, color, and layer settings. [Latest GitHub release](https://github.com/trungvu0128/CurtantControl/releases/latest)
 
 ## Separate Razr controllers
 
-Switch Razr in User or Developer selects Razr I (curtain relays) or Razr II (camera angles).
-Each has its own operating screen and settings page. Neither contains light controls.
+Switch Razr selects Razr I (curtain relays), Razr II (camera angles), or Camera RAZR 3
+(camera rotation and five indoor backdrops). User mode requires the switch PIN.
+Camera RAZR 3 starts in simulation and uses a separate Developer settings profile.
 Modes is visible only in Developer; User opens the mode chooser by holding the
 bottom-right corner for three seconds. Razr II settings show only
 two choice names, two angles and wait time; advanced motor setup is collapsed in

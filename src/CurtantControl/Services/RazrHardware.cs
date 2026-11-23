@@ -25,7 +25,8 @@ public sealed class RazrHardware(RazrConfiguration configuration,
     public async Task MoveCameraAsync(double angle, CancellationToken token)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_config.Model != RazrModel.RazrII) throw new InvalidOperationException("Camera motor belongs to Razr II only.");
+        if (_config.Model is not (RazrModel.RazrII or RazrModel.RazrIII))
+            throw new InvalidOperationException("Select a Razr model with a camera motor.");
         if (!double.IsFinite(_config.FullScaleAngle) || _config.FullScaleAngle <= 0 || _config.FullScaleAngle > 360
             || !double.IsFinite(angle) || angle < 0 || angle > _config.FullScaleAngle
             || angle < _config.MinimumAngle || angle > _config.MaximumAngle)

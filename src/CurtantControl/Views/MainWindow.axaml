@@ -20,10 +20,11 @@
 
     <Grid>
         <views:StartupModeView IsVisible="{Binding IsModeSelectionVisible}" />
-        <views:UserPhotoboothView IsVisible="{Binding IsRazrIScreenVisible}" />
+        <views:UserPhotoboothView IsVisible="{Binding IsCurtainPhotoboothScreenVisible}" />
         <views:RazrIIView IsVisible="{Binding IsRazrIIScreenVisible}" />
         <views:RazrModelSelectionView IsVisible="{Binding IsModelSelectionOpen}" />
         <views:RazrIISettingsView IsVisible="{Binding IsRazrSettingsOpen}" />
+        <views:Razr3SettingsView IsVisible="{Binding IsRazr3SettingsOpen}" />
         <Border IsVisible="{Binding IsCurtainSettingsVisible}">
             <views:CurtainSettingsView DataContext="{Binding CurtainSettings}" />
         </Border>

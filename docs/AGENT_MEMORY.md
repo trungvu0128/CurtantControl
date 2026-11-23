@@ -1265,3 +1265,25 @@ in per-user recovery, and snapshots and small file backups remain available.
 98 app and 61 Python checks passed, including unrelated-file preservation and
 rollback retention. Buster ARM32 publish and real full/small artifact cleanup
 passed against temp installations for 0.11.0–0.11.2. No physical Pi test.
+
+2026-11-23 added Camera RAZR 3 to the PIN-gated model chooser. Outside commands
+the shared DAC motor only. Room 1 waits after rotation and then routes the four
+physical curtain pairs through the existing layer planner. Subsequent colors in
+the same settled Room 1 session reuse that direction. The independent per-user
+razr3.json stores calibration, color assignments and staged selection. The default
+is simulation even on installations with real GPIO configured for Razr I.
+Debug and Release built, 104 host checks passed, and the 800×480 and desktop
+screens rendered. The simulated Outside → Green → Purple → White sequence ran
+through Start with an activity log. Linux ARM64 and Buster ARM32 were cross-published.
+Pending physical acceptance includes both measured angles, settling time, shared
+bracket travel, actual curtains and Buster runtime operation.
+
+2026-11-23 RAZR I and RAZR 3 share UserPhotoboothView. The RAZR 3 layout follows
+the supplied reference with five swatches on the left and Start and Open
+landscape above the camera on the right. Reviewed RAZR 3 User at 800×480 and
+Developer at 1280×760. Debug and Release builds succeeded and the headless
+RAZR 3 scenario completed.
+
+2026-11-23 replaced the low-resolution Open landscape crop with a 1280×720
+Lake Bled photo and enabled high-quality scaling for the tile. Source and CC0
+license are in DEVELOPMENT.md. Debug, Release and both screen renders passed.

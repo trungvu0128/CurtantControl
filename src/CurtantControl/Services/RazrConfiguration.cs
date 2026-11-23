@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace CurtantControl.Services;
 
-public enum RazrModel { RazrI, RazrII }
+public enum RazrModel { RazrI, RazrII, RazrIII }
 public enum RazrControlMode { Motor, Relays, MotorAndRelays }
 
 public sealed record CameraPositionSnapshot(int Id, double Angle, double FullScaleAngle, bool Completed,
@@ -51,8 +51,8 @@ public sealed class RazrConfiguration
     public void Validate(PhotoboothSettings installation)
     {
         static bool Between(double v, double min, double max) => double.IsFinite(v) && v >= min && v <= max;
-        if (!Enum.IsDefined(Model)) throw new InvalidDataException("Choose Razr I or Razr II.");
-        if (Model == RazrModel.RazrI) return;
+        if (!Enum.IsDefined(Model)) throw new InvalidDataException("Choose a Razr model.");
+        if (Model != RazrModel.RazrII) return;
         if (!Enum.IsDefined(ControlMode)) throw new InvalidDataException("Choose Motor, Relay 1/2 or Motor + Relay.");
         if (UsesRelays)
         {
@@ -68,7 +68,12 @@ public sealed class RazrConfiguration
         if (string.IsNullOrWhiteSpace(Position1Name) || string.IsNullOrWhiteSpace(Position2Name)
             || Position1Name.Length > 40 || Position2Name.Length > 40 || Position1Name.Trim() == Position2Name.Trim())
             throw new InvalidDataException("Give the two camera positions different names (1–40 characters).");
-        if (!UsesMotor) return;
+        if (UsesMotor) ValidateMotor();
+    }
+
+    internal void ValidateMotor()
+    {
+        static bool Between(double v, double min, double max) => double.IsFinite(v) && v >= min && v <= max;
         if (!Between(FullScaleAngle, 1, 360) || !Between(MinimumAngle, 0, FullScaleAngle)
             || !Between(MaximumAngle, MinimumAngle + 0.1, FullScaleAngle)
             || !Between(Position1Angle, MinimumAngle, MaximumAngle) || !Between(Position2Angle, MinimumAngle, MaximumAngle))

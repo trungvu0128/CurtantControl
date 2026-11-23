@@ -93,6 +93,7 @@ python scripts/publish-github-release.py 0.11.1
 The publisher uses the local Git Credential Manager account, never copies its
 credential to Pi or source, and creates a draft until both archive/checksum
 assets are uploaded and verified. It resumes a matching draft after interruption.
+Pass `--notes-file PATH` to prepend a Markdown summary for the new version.
 Published releases are not overwritten. Tags must be `v0.11.1` and assets:
 
 ```text
