@@ -32,10 +32,13 @@ public partial class MainViewModel
         NotifyUserActions();
     }
     private CurtainOption? _pendingUserCurtain;
-    private bool IsBackgroundApplied(CurtainOption curtain) => curtain.Id == 0
-        ? Curtains.All(c => c.CommandStatus == "Closed")
-        : curtain.CommandStatus == "Opened"
-        && DisplayCurtains.TakeWhile(c => c != curtain).All(c => c.CommandStatus == "Closed");
+    private bool IsBackgroundApplied(CurtainOption curtain)
+    {
+        if (UsesPaperRelaySequence) return _completedPaperBackgroundId == curtain.Id;
+        return curtain.Id == 0 ? Curtains.All(c => c.CommandStatus == "Closed")
+            : curtain.CommandStatus == "Opened"
+            && DisplayCurtains.TakeWhile(c => c != curtain).All(c => c.CommandStatus == "Closed");
+    }
     public bool IsModeSelectionVisible => Mode == ApplicationMode.Startup;
     public bool IsDeveloperScreenVisible => Mode == ApplicationMode.Developer && !IsSettingsOpen;
     public bool IsUserScreenVisible => Mode == ApplicationMode.User && !IsSettingsOpen;

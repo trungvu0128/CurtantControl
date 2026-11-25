@@ -184,6 +184,27 @@ configurations and custom permutations are shown as a current setup until the
 operator selects a preset and saves.
 
 Physical motor command states stay with their relay pairs. The highlight is
-recalculated after Save, and White still closes any motor that is open or has
-an unconfirmed state. RAZR 3 shares the physical layer order and uses its own
-color assignments.
+recalculated after Save. In the regular profile, White closes any motor that is
+open or has an unconfirmed state. RAZR 3 shares the physical layer order and uses
+its own color assignments.
+
+### RAZR I paper relay sequence
+
+The R1/R2-nearest preset with reversed color assignments runs the following
+sequences. Color names here are the defaults for the four button positions.
+
+| Background | Relay pulses in order |
+| --- | --- |
+| White | R1 → R3 → R5 → R7 |
+| Pink | R8 → R5 → R3 → R1 |
+| Sky Blue | R6 → R3 → R1 |
+| Green | R4 → R1 |
+| Purple | R1 |
+
+Each started sequence sends its complete row. The controller releases each relay
+before starting the next and cancels the remaining pulses on Stop or error. The
+application records successful sequence completion for the repeat-selection guard.
+Touched motor positions stay Unknown in the shared relay history. In particular,
+R1 appears in both White and Purple and a completed R1 pulse does not establish
+which backdrop is visible. The regular profile continues using the state-aware
+foreground planner. RAZR II and RAZR 3 use their own existing command paths.
