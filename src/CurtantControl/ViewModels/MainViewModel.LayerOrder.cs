@@ -6,6 +6,10 @@ namespace CurtantControl.ViewModels;
 
 public partial class MainViewModel
 {
+    private int? _completedPaperBackgroundId;
+    private bool UsesPaperRelaySequence => _palette.ReverseRelayAssignments
+        && _settings.CurtainOrderFrontToBack.SequenceEqual([1, 2, 3, 4]);
+
     private CurtainColorPreset ColorForMotor(int motorId)
     {
         var slot = CurtainPalette.MapMotor(motorId, _palette.ReverseRelayAssignments);

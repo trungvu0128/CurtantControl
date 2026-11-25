@@ -36,14 +36,14 @@
                         <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="160,*" RowSpacing="13" ColumnSpacing="16">
                             <TextBlock Text="Fixed backdrop" VerticalAlignment="Center" />
                             <ComboBox Grid.Column="1" Classes="colorChoice" ItemsSource="{Binding Razr3Colors}" SelectedItem="{Binding Razr3FixedColor, Mode=TwoWay}" AutomationProperties.Name="Fixed backdrop color" />
-                            <TextBlock Grid.Row="1" Text="Curtain 1" VerticalAlignment="Center" />
-                            <ComboBox Grid.Row="1" Grid.Column="1" Classes="colorChoice" ItemsSource="{Binding Razr3Colors}" SelectedItem="{Binding Razr3M1Color, Mode=TwoWay}" AutomationProperties.Name="M1 color" />
-                            <TextBlock Grid.Row="2" Text="Curtain 2" VerticalAlignment="Center" />
-                            <ComboBox Grid.Row="2" Grid.Column="1" Classes="colorChoice" ItemsSource="{Binding Razr3Colors}" SelectedItem="{Binding Razr3M2Color, Mode=TwoWay}" AutomationProperties.Name="M2 color" />
-                            <TextBlock Grid.Row="3" Text="Curtain 3" VerticalAlignment="Center" />
-                            <ComboBox Grid.Row="3" Grid.Column="1" Classes="colorChoice" ItemsSource="{Binding Razr3Colors}" SelectedItem="{Binding Razr3M3Color, Mode=TwoWay}" AutomationProperties.Name="M3 color" />
-                            <TextBlock Grid.Row="4" Text="Curtain 4" VerticalAlignment="Center" />
-                            <ComboBox Grid.Row="4" Grid.Column="1" Classes="colorChoice" ItemsSource="{Binding Razr3Colors}" SelectedItem="{Binding Razr3M4Color, Mode=TwoWay}" AutomationProperties.Name="M4 color" />
+                            <TextBlock Grid.Row="1" Text="{Binding Razr3RelayPairs[0]}" VerticalAlignment="Center" />
+                            <ComboBox Grid.Row="1" Grid.Column="1" Classes="colorChoice" ItemsSource="{Binding Razr3Colors}" SelectedItem="{Binding Razr3M1Color, Mode=TwoWay}" AutomationProperties.Name="First backdrop color" />
+                            <TextBlock Grid.Row="2" Text="{Binding Razr3RelayPairs[1]}" VerticalAlignment="Center" />
+                            <ComboBox Grid.Row="2" Grid.Column="1" Classes="colorChoice" ItemsSource="{Binding Razr3Colors}" SelectedItem="{Binding Razr3M2Color, Mode=TwoWay}" AutomationProperties.Name="Second backdrop color" />
+                            <TextBlock Grid.Row="3" Text="{Binding Razr3RelayPairs[2]}" VerticalAlignment="Center" />
+                            <ComboBox Grid.Row="3" Grid.Column="1" Classes="colorChoice" ItemsSource="{Binding Razr3Colors}" SelectedItem="{Binding Razr3M3Color, Mode=TwoWay}" AutomationProperties.Name="Third backdrop color" />
+                            <TextBlock Grid.Row="4" Text="{Binding Razr3RelayPairs[3]}" VerticalAlignment="Center" />
+                            <ComboBox Grid.Row="4" Grid.Column="1" Classes="colorChoice" ItemsSource="{Binding Razr3Colors}" SelectedItem="{Binding Razr3M4Color, Mode=TwoWay}" AutomationProperties.Name="Fourth backdrop color" />
                         </Grid>
                     </StackPanel>
                 </Border>

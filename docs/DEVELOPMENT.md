@@ -5,7 +5,9 @@
 `Razr3SceneController` coordinates motor targeting, settling and background application.
 The view model owns the selected scene and shares real curtain control and command
 state with Razr I. `Razr3ConfigurationStore` persists independent color assignments
-and motor settings in per-user `razr3.json`. RAZR I and RAZR 3 share
+and motor settings in per-user `razr3.json`. Both models resolve backdrop slots
+through the saved relay preset and apply them with `BackgroundController`.
+RAZR I and RAZR 3 share
 `UserPhotoboothView` and the live camera session. In RAZR 3, Start and Open
 landscape sit above the camera preview. See [setup and calibration](RAZR_MODES.md#camera-razr-3-setup-and-acceptance).
 

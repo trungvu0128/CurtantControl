@@ -112,10 +112,11 @@ by these source changes.
    five backdrop assignments. The 70°–180° reference range is prefilled as Outside
    70° and Room 1 180° for new or blank simulation profiles. Existing saved angles
    and travel limits take precedence. Check the backdrop assignments against the booth.
-   The defaults are White for the fixed backdrop, Sky Blue for M1, Green for M2,
-   Purple for M3 and Gray for M4. Settings edits these five assignments independently
-   of Razr I. The relay pairs, pulse settings and layer order come from the existing
-   installation. The layer order is editable in Razr I Developer Settings.
+   The default button order is White, Sky Blue, Green, Purple and Gray. Save
+   the relay preset in RAZR I Developer Settings to set relay assignments and
+   sequence for both models. Under R1/R2 nearest, the four color slots follow
+   the [shared paper relay sequence](RELAY_CONTROL.md#shared-paper-relay-sequence).
+   RAZR 3 Settings shows the current relay pairs and saves its own backdrop colors.
 3. For hardware operation, set `SimulateRelays` to `false` in `photobooth.json`
    using the verified polarity and eight BCM pins. Reserve GPIO2/3 for I²C and
    stop the legacy Python hardware controller before running the C# outputs.

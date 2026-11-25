@@ -58,6 +58,50 @@ internal static class Razr3Checks
             }
         });
 
+        await check("RAZR 3 inherits the RAZR I paper sequences by backdrop slot after settling", async () =>
+        {
+            var output = new RecordingOutput();
+            var motor = new RecordingRazrHardware();
+            var model = new MemoryRazrStore { Value = new() { Model = RazrModel.RazrI } };
+            var palette = new MemoryPaletteStore();
+            await using var vm = Create(output, motor, new() { SettleSeconds = 0.08 }, order: [4, 3, 2, 1], model: model, palette: palette);
+            vm.EnterDeveloperModeCommand.Execute(null);
+            vm.OpenSettingsCommand.Execute(null);
+            vm.CurtainSettings.SelectedRelayOrder = vm.CurtainSettings.RelayOrders[0];
+            vm.CurtainSettings.SaveCommand.Execute(null);
+            vm.CurtainSettings.CancelCommand.Execute(null);
+            vm.OpenRazrSettingsCommand.Execute(null);
+            vm.EnterRazr3Command.Execute(null);
+
+            assert(vm.Razr3Backgrounds.Select(scene => scene.Name).SequenceEqual(["White", "Sky Blue", "Green", "Purple", "Gray"])
+                && vm.Razr3RelayPairs.SequenceEqual(["Curtain 4 · R7/R8", "Curtain 3 · R5/R6", "Curtain 2 · R3/R4", "Curtain 1 · R1/R2"]),
+                "RAZR 3 changed the color positions or displayed the old relay assignments.");
+            await Apply(vm, 5);
+            assert(!output.Events.Any(e => e.On) && motor.Angles.SequenceEqual([70d]), "Outside pulsed the curtains under the paper preset.");
+
+            async Task VerifyPulses(int slot, params int[] expected)
+            {
+                var before = output.Events.Count;
+                await Apply(vm, slot);
+                var pulses = output.Events.Skip(before).Where(e => e.On).Select(e => e.Channel);
+                assert(pulses.SequenceEqual(expected) && output.AllOff && vm.Status == "Ready" && !vm.CanStart,
+                    $"RAZR 3 sent a different sequence for {vm.Razr3Backgrounds[slot].Name} or did not finish cleanly.");
+            }
+
+            var start = Stopwatch.GetTimestamp();
+            await VerifyPulses(1, 8, 5, 3, 1);
+            assert(Stopwatch.GetElapsedTime(start, output.Events.First(e => e.On).Timestamp) >= TimeSpan.FromMilliseconds(70),
+                "The first paper pulse ran before Room 1 settled.");
+            assert(vm.ActivityLog.Any(item => item.Contains("RAZR 3 · Sky Blue · sending R8 pulse", StringComparison.Ordinal)),
+                "The paper pulse log used the wrong backdrop name.");
+            await VerifyPulses(2, 6, 3, 1);
+            await VerifyPulses(3, 4, 1);
+            await VerifyPulses(4, 1);
+            await VerifyPulses(0, 1, 3, 5, 7);
+            await VerifyPulses(0);
+            assert(motor.Angles.SequenceEqual([70d, 180d]), "Indoor paper sequences resent the settled camera angle.");
+        });
+
         await check("RAZR 3 guards the curtain phase against motor failure, cancellation and shutdown", async () =>
         {
             foreach (var failure in new[] { "dac", "stop", "shutdown" })
@@ -180,10 +224,10 @@ internal static class Razr3Checks
     }
 
     private static MainViewModel Create(RecordingOutput output, RecordingRazrHardware motor, Razr3Configuration configuration,
-        int[]? order = null, MemoryRazrStore? model = null, MemoryRazr3Store? profile = null) => new(
+        int[]? order = null, MemoryRazrStore? model = null, MemoryRazr3Store? profile = null, MemoryPaletteStore? palette = null) => new(
         new() { CurtainOrderFrontToBack = order ?? [1, 2, 3, 4], ActivationMilliseconds = 5 }, CreateRelays(output),
         razrStore: model ?? new() { Value = new() { Model = RazrModel.RazrIII } },
-        razr3Store: profile ?? new() { Value = configuration }, razr3MotorFactory: _ => motor);
+        razr3Store: profile ?? new() { Value = configuration }, razr3MotorFactory: _ => motor, paletteStore: palette);
 
     private static CurtainRelayController CreateRelays(RecordingOutput output) =>
         new(output, TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(3));

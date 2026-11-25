@@ -21,8 +21,7 @@ public sealed class Razr3SceneController
     }
 
     public async Task ApplyAsync(int sceneId, RazrConfiguration motor, Func<double, CancellationToken, Task> moveCamera,
-        Func<BackgroundController> getBackgrounds, Action<Razr3Stage> reportStage,
-        Action<CurtainCommandUpdate> reportCurtain, CancellationToken token)
+        Func<int, CancellationToken, Task> applyBackground, Action<Razr3Stage> reportStage, CancellationToken token)
     {
         if (sceneId is < 0 or > Razr3Configuration.OutsideScene)
             throw new ArgumentOutOfRangeException(nameof(sceneId));
@@ -44,9 +43,7 @@ public sealed class Razr3SceneController
         {
             reportStage(Razr3Stage.ApplyingBackground);
             token.ThrowIfCancellationRequested();
-            var backgrounds = getBackgrounds();
-            if (sceneId == 0) await backgrounds.CloseAllAsync(token, reportCurtain);
-            else await backgrounds.SelectAsync(sceneId, token, reportCurtain);
+            await applyBackground(sceneId, token);
         }
         token.ThrowIfCancellationRequested();
         CompletedScene = sceneId;

@@ -32,6 +32,11 @@ public partial class MainViewModel
     public bool IsRazr3ScreenVisible => IsPhotoboothScreenVisible && IsRazr3;
     public string Razr3HardwareSummary => _razr3.Simulate ? "RAZR 3 · SIMULATION" : "RAZR 3 · HARDWARE";
     public IReadOnlyList<CurtainOption> Razr3Backgrounds { get; private set; } = Array.Empty<CurtainOption>();
+    public string[] Razr3RelayPairs => Enumerable.Range(1, 4).Select(slot =>
+    {
+        var motor = CurtainPalette.MapMotor(slot, _palette.ReverseRelayAssignments);
+        return $"Curtain {motor} · R{motor * 2 - 1}/R{motor * 2}";
+    }).ToArray();
     public CurtainOption Razr3Outside { get; } = new(Razr3Configuration.OutsideScene, "Open landscape", "#315F72");
     public CurtainColorPreset[] Razr3Colors => _palette.Colors.Concat(Razr3DefaultColors)
         .DistinctBy(color => color.Key).ToArray();
@@ -191,7 +196,7 @@ public partial class MainViewModel
         {
             var motor = _razr3.MotorSettings();
             await _razr3Scenes.ApplyAsync(scene.Id, motor, (angle, token) => MoveRazr3CameraAsync(motor, angle, token),
-                GetRazr3BackgroundController, stage => ReportRazr3Stage(stage, scene), ReportRazr3Curtain, movement.Token);
+                ApplyRazr3BackgroundAsync, stage => ReportRazr3Stage(stage, scene), movement.Token);
             Status = "Ready";
             AddLog($"RAZR 3 · {scene.Name} · {(_razr3.Simulate ? "simulation complete" : "command sequence complete")}");
         }
@@ -229,6 +234,14 @@ public partial class MainViewModel
         return _razr3Motor.MoveCameraAsync(angle, token);
     }
 
+    private Task ApplyRazr3BackgroundAsync(int slot, CancellationToken token)
+    {
+        var motor = CurtainPalette.MapMotor(slot, _palette.ReverseRelayAssignments);
+        var name = Razr3Backgrounds[slot].Name;
+        return GetRazr3BackgroundController().ApplyAsync(motor, UsesPaperRelaySequence, token, ReportRazr3Curtain,
+            relay => AddLog($"RAZR 3 · {name} · sending R{relay} pulse"));
+    }
+
     private BackgroundController GetRazr3BackgroundController()
     {
         if (UsesSeparateRazr3Simulation)
@@ -259,7 +272,8 @@ public partial class MainViewModel
 
     private void ReportRazr3Curtain(CurtainCommandUpdate update)
     {
-        var name = Razr3Backgrounds[update.Curtain].Name;
+        var slot = CurtainPalette.MapMotor(update.Curtain, _palette.ReverseRelayAssignments);
+        var name = Razr3Backgrounds[slot].Name;
         if (UsesSeparateRazr3Simulation)
         {
             _razr3SimulationStates[update.Curtain - 1] = update.State;

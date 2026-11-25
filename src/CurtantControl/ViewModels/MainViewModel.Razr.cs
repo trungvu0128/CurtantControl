@@ -388,6 +388,7 @@ public partial class MainViewModel
             _razrHardware = nextHardware;
             CancelUserDraft();
             ResetRazr3Motor();
+            _completedPaperBackgroundId = null;
             _razr = updated;
             if (IsRazrII)
             {

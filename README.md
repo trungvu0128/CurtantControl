@@ -142,7 +142,7 @@ Background changes skip individual motors already in the requested completed com
 Developer Settings can choose whether R1/R2 or R7/R8 is nearest to the camera. Save applies immediately without movement and persists across restarts; User mode uses the same saved order but hides this control.
 
 
-RAZR I shows the fixed background first, followed by four color slots. In Developer Settings, selecting a relay-layer order also assigns the relay pairs to those slots. R7/R8 nearest uses pairs R1/R2 through R7/R8. R1/R2 nearest uses the reverse assignments, with R1/R2 on the last color. Save applies both settings for the next START.
+RAZR I shows the fixed background first, followed by four color slots. Its Developer Settings controls the relay preset shared with RAZR 3. R7/R8 nearest uses pairs R1/R2 through R7/R8. R1/R2 nearest reverses the assignments and runs the [paper relay sequences](docs/RELAY_CONTROL.md#shared-paper-relay-sequence). Save applies the preset for the next START.
 
 
 The complete Pi Buster ARM32 bundle includes the app and keycheck. Extract it on
