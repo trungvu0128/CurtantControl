@@ -143,7 +143,7 @@ Linux execution occurs in host tests. Actual device installation remains necessa
 
 The Buster installer now migrates only obsolete Aliyun Raspbian Buster .list entries before apt update, retaining timestamped backups and signature verification. New bundles inherit this fix; the original 0.2.0 archive predates it.
 
-CurtainPaletteStore loads/atomically saves colors.json beside the executable. CurtainSettingsViewModel edits appearance in the existing four fixed-position dropdowns. Duplicate color choices are rejected without swapping. Existing layer order is retained. CurtainOption name/color are observable; IDs and relay mapping remain fixed. The bundle installer preserves both photobooth.json and colors.json during updates.
+CurtainPaletteStore loads and atomically saves colors.json beside the executable. CurtainSettingsViewModel edits four color slots and previews the relay pairs for the selected layer preset. `Slots` stays in button order and `ReverseRelayAssignments` maps those slots to physical motor IDs. `Curtains` stays indexed by physical ID for relay state and diagnostics. Saved RAZR I button selections identify the stable slot. Duplicate color choices are rejected. The bundle installer preserves photobooth.json and colors.json during updates.
 
 App composition injects CurtainCommandStateStore into MainViewModel. ReportCurtain records pending Unknown before relay activation and persists final command states. Startup restores annotated estimates without movement or selection guards. Separate hardware/simulation files in per-user data survive app-folder updates. Tests inject stores and cover round-trip restore, interrupted commands, corrupt files and blocked pulses on pending-write failure.
 

@@ -354,22 +354,24 @@ await Check("unknown states still send commands and cancellation never opens tar
     Assert(states[3] == CurtainCommandState.Unknown && !output.Events.Any(e => e.On && e.Channel is 6 or 3), "Canceled selection pulsed skipped foreground or opened target.");
 });
 
-await Check("runtime layer reversal saves without GPIO, updates next START, restores and reconciles selection", async () =>
+await Check("RAZR I reverses color relay assignments without moving buttons or pulsing on Save", async () =>
 {
     var output = new RecordingOutput();
     var palette = new MemoryPaletteStore();
+    var razr = new MemoryRazrStore();
     var settings = new PhotoboothSettings { ActivationMilliseconds = 20, CurtainOrderFrontToBack = [4, 3, 2, 1] };
-    await using var vm = new MainViewModel(settings, Create(output), paletteStore: palette);
+    await using var vm = new MainViewModel(settings, Create(output), paletteStore: palette, razrStore: razr);
     vm.EnterDeveloperModeCommand.Execute(null);
-    async Task Apply(int id, params int[] channels)
+    var colors = vm.BackgroundOptions.Select(c => c.Name).ToArray();
+    async Task Apply(string color, params int[] channels)
     {
         var before = output.Events.Count;
-        await vm.SelectCurtainCommand.ExecuteAsync(vm.BackgroundOptions.Single(c => c.Id == id));
+        await vm.SelectCurtainCommand.ExecuteAsync(vm.BackgroundOptions.Single(c => c.Name == color));
         await vm.StartBackgroundCommand.ExecuteAsync(null);
-        Assert(output.Events.Skip(before).Where(e => e.On).Select(e => e.Channel).SequenceEqual(channels), "Runtime order sent wrong relay sequence.");
+        Assert(output.Events.Skip(before).Where(e => e.On).Select(e => e.Channel).SequenceEqual(channels), $"{color} sent wrong relay sequence.");
     }
-    await Apply(1, 1);
-    await Apply(4, 7);
+    await Apply("Pink", 1);
+    await Apply("Purple", 7);
     await vm.SelectCurtainCommand.ExecuteAsync(vm.BackgroundOptions.Single(c => c.Id == 2));
     Assert(vm.CanStart, "Draft not staged before changing order.");
     vm.OpenSettingsCommand.Execute(null);
@@ -377,34 +379,64 @@ await Check("runtime layer reversal saves without GPIO, updates next START, rest
     var states = vm.Curtains.Select(c => c.CommandStatus).ToArray();
     vm.CurtainSettings.SelectedRelayOrder = vm.CurtainSettings.RelayOrders.Single(o => o.FrontToBack.SequenceEqual(new[] { 1, 2, 3, 4 }));
     Assert(settings.CurtainOrderFrontToBack.SequenceEqual(new[] { 4, 3, 2, 1 }), "Unsaved layer draft applied.");
-    Assert(vm.BackgroundOptions.Select(c => c.Id).SequenceEqual(new[] { 0, 1, 2, 3, 4 })
-        && vm.CurtainSettings.DisplaySlots.Select(s => s.CurtainId).SequenceEqual(new[] { 0, 1, 2, 3, 4 }), "Changing relay layer draft reordered paper background buttons.");
+    Assert(vm.BackgroundOptions[4].Id == 4 && vm.CurtainSettings.DisplaySlots[4].Position.EndsWith("M1 · R1/R2"),
+        "Draft did not preview the new mapping or affected the live mapping.");
     vm.CurtainSettings.SaveCommand.Execute(null);
     Assert(vm.IsSettingsOpen && vm.CurtainSettings.Notice == "Saved" && output.Events.Count == beforeSave, "Order Save moved relay or navigated.");
-    Assert(vm.Curtains.Select(c => c.CommandStatus).SequenceEqual(states) && vm.Curtains[0].IsSelected && !vm.CanStart, "Order save changed motor states or retained stale draft/highlight.");
-    Assert(settings.CurtainOrderFrontToBack.SequenceEqual(new[] { 1, 2, 3, 4 }) && palette.Value.RelayOrderFrontToBack!.SequenceEqual(new[] { 1, 2, 3, 4 }), "Forward order did not persist/apply.");
-    Assert(vm.BackgroundOptions.Select(c => c.Id).SequenceEqual(new[] { 0, 1, 2, 3, 4 }), "Forward layer order changed paper background button order.");
+    Assert(vm.Curtains.Select(c => c.CommandStatus).SequenceEqual(states) && vm.Curtains[0].IsSelected && !vm.CanStart, "Order save changed physical motor states or retained stale draft/highlight.");
+    Assert(settings.CurtainOrderFrontToBack.SequenceEqual(new[] { 1, 2, 3, 4 }) && palette.Value.ReverseRelayAssignments, "Reversed assignments did not persist with layer order.");
+    Assert(vm.BackgroundOptions.Select(c => c.Id).SequenceEqual(new[] { 0, 4, 3, 2, 1 })
+        && vm.BackgroundOptions.Select(c => c.Name).SequenceEqual(colors), "Reversal changed color positions or assigned wrong motors.");
     vm.CurtainSettings.CancelCommand.Execute(null);
-    await Apply(2, 2, 3);
+    await Apply("Sky Blue", 2, 5);
+    await Apply("Purple", 1);
+    await using (var restored = new MainViewModel(new PhotoboothSettings(), paletteStore: palette, razrStore: razr))
+    {
+        Assert(restored.DisplayCurtains.Select(c => c.Id).SequenceEqual(new[] { 1, 2, 3, 4 })
+            && restored.BackgroundOptions[4] is { Id: 1, Name: "Purple", IsSelected: true },
+            "Reopen did not restore the order, mapping or saved color.");
+    }
+    var whiteStart = output.Events.Count;
+    await vm.SelectCurtainCommand.ExecuteAsync(vm.FixedWhiteBackground);
+    await vm.StartBackgroundCommand.ExecuteAsync(null);
+    Assert(output.Events.Skip(whiteStart).Where(e => e.On).Select(e => e.Channel).Order().SequenceEqual(new[] { 2, 6, 8 }),
+        "White did not close only the open physical curtains after remapping.");
     vm.OpenSettingsCommand.Execute(null);
     beforeSave = output.Events.Count;
     vm.CurtainSettings.SelectedRelayOrder = vm.CurtainSettings.RelayOrders.Single(o => o.FrontToBack.SequenceEqual(new[] { 4, 3, 2, 1 }));
     vm.CurtainSettings.SaveCommand.Execute(null);
-    Assert(output.Events.Count == beforeSave && vm.Curtains[3].IsSelected, "Reverse save pulsed relays or failed visible-layer inference.");
-    Assert(vm.BackgroundOptions.Select(c => c.Id).SequenceEqual(new[] { 0, 1, 2, 3, 4 })
-        && vm.CurtainSettings.DisplaySlots.Select(s => s.CurtainId).SequenceEqual(vm.BackgroundOptions.Select(c => c.Id)), "Reverse relay layers changed paper main/Settings button order.");
+    Assert(output.Events.Count == beforeSave && vm.FixedWhiteBackground.IsSelected, "Changing back pulsed relays or failed visible-layer inference.");
+    Assert(vm.BackgroundOptions.Select(c => c.Id).SequenceEqual(new[] { 0, 1, 2, 3, 4 }) && vm.BackgroundOptions.Select(c => c.Name).SequenceEqual(colors),
+        "Changing back did not restore the original pairs with the same color positions.");
     vm.CurtainSettings.CancelCommand.Execute(null);
-    await Apply(2, 8);
-    await using var restored = new MainViewModel(new PhotoboothSettings { CurtainOrderFrontToBack = [1, 2, 3, 4] }, paletteStore: palette);
-    Assert(restored.DisplayCurtains.Select(c => c.Id).SequenceEqual(new[] { 4, 3, 2, 1 }), "Palette order was overridden after restart.");
+    await Apply("Purple", 7);
     var path = Path.Combine(Path.GetTempPath(), "relay-order-" + Guid.NewGuid() + ".json");
     try
     {
         var disk = new CurtainPaletteStore(path);
+        palette.Value.ReverseRelayAssignments = true;
+        palette.Value.RelayOrderFrontToBack = [1, 2, 3, 4];
         disk.Save(palette.Value);
-        Assert(disk.Load().RelayOrderFrontToBack!.SequenceEqual(new[] { 4, 3, 2, 1 }), "Layer order lost in JSON round-trip.");
+        Assert(disk.Load() is { ReverseRelayAssignments: true, RelayOrderFrontToBack: [1, 2, 3, 4] }, "Layer order or mapping lost in JSON round-trip.");
     }
     finally { if (File.Exists(path)) File.Delete(path); }
+});
+
+await Check("legacy R1/R2-nearest setup keeps its assignments until remapping is selected", async () =>
+{
+    var output = new RecordingOutput();
+    var palette = new MemoryPaletteStore();
+    await using var vm = new MainViewModel(new PhotoboothSettings(), Create(output), paletteStore: palette);
+    vm.EnterDeveloperModeCommand.Execute(null);
+    vm.OpenSettingsCommand.Execute(null);
+    var editor = vm.CurtainSettings;
+    editor.SaveCommand.Execute(null);
+    Assert(!palette.Value.ReverseRelayAssignments && vm.BackgroundOptions[4].Id == 4,
+        "Saving settings silently remapped the legacy installation.");
+    editor.SelectedRelayOrder = editor.RelayOrders[0];
+    editor.SaveCommand.Execute(null);
+    Assert(palette.Value.ReverseRelayAssignments && vm.BackgroundOptions[4].Id == 1 && !output.Events.Any(e => e.On),
+        "Choosing remapping did not apply to the same layer order or sent a relay pulse.");
 });
 
 await Check("layer order Cancel, failed Save, and Save during movement leave applied mapping unchanged", async () =>

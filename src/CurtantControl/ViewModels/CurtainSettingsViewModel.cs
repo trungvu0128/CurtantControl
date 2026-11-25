@@ -7,9 +7,9 @@ using CurtantControl.Services;
 
 namespace CurtantControl.ViewModels;
 
-public sealed record RelayLayerOrderChoice(string Name, int[] FrontToBack);
+public sealed record RelayLayerOrderChoice(string Name, int[] FrontToBack, bool ReverseRelayAssignments);
 
-public partial class CurtainSettingsViewModel(Func<string[], string, int[], string?> save, Action cancel) : ViewModelBase
+public partial class CurtainSettingsViewModel(Func<string[], string, RelayLayerOrderChoice, string?> save, Action cancel) : ViewModelBase
 {
     public ObservableCollection<CurtainLayerSlot> Slots { get; } = new();
     public ObservableCollection<CurtainLayerSlot> DisplaySlots { get; } = new();
@@ -57,13 +57,18 @@ public partial class CurtainSettingsViewModel(Func<string[], string, int[], stri
         IsRelayOrderVisible = developerMode;
         RelayOrders =
         [
-            new("R1/R2 nearest → R3/R4 → R5/R6 → R7/R8", [1, 2, 3, 4]),
-            new("R7/R8 nearest → R5/R6 → R3/R4 → R1/R2", [4, 3, 2, 1])
+            new("R1/R2 nearest → R3/R4 → R5/R6 → R7/R8", [1, 2, 3, 4], true),
+            new("R7/R8 nearest → R5/R6 → R3/R4 → R1/R2", [4, 3, 2, 1], false)
         ];
-        var existing = RelayOrders.FirstOrDefault(o => o.FrontToBack.SequenceEqual(frontToBack));
+        var matchingOrder = RelayOrders.FirstOrDefault(o => o.FrontToBack.SequenceEqual(frontToBack));
+        var existing = matchingOrder;
+        // An older installation can have the same layer order with a different color assignment.
+        if (existing?.ReverseRelayAssignments != palette.ReverseRelayAssignments) existing = null;
         if (existing is null)
         {
-            existing = new("Current custom layer order", (int[])frontToBack.Clone());
+            var name = matchingOrder is null ? "Current custom layer order"
+                : $"Current setup · R{frontToBack[0] * 2 - 1}/R{frontToBack[0] * 2} nearest · saved color assignments";
+            existing = new(name, (int[])frontToBack.Clone(), palette.ReverseRelayAssignments);
             RelayOrders = RelayOrders.Append(existing).ToArray();
         }
         SelectedRelayOrder = existing;
@@ -93,8 +98,9 @@ public partial class CurtainSettingsViewModel(Func<string[], string, int[], stri
         DisplaySlots.Add(_fixedSlot);
         foreach (var slot in Slots.OrderBy(s => s.CurtainId))
         {
-            var id = slot.CurtainId;
-            slot.Position = $"{id + 1} · Background {id + 1} · M{id} · R{id * 2 - 1}/R{id * 2}";
+            var motor = CurtainPalette.MapMotor(slot.CurtainId, SelectedRelayOrder.ReverseRelayAssignments);
+            var background = slot.CurtainId + 1;
+            slot.Position = $"{background} · Background {background} · M{motor} · R{motor * 2 - 1}/R{motor * 2}";
             DisplaySlots.Add(slot);
         }
     }
@@ -117,7 +123,7 @@ public partial class CurtainSettingsViewModel(Func<string[], string, int[], stri
     [RelayCommand]
     private void Save()
     {
-        Error = save(Slots.OrderBy(s => s.CurtainId).Select(s => s.SelectedColor.Key).ToArray(), FixedColor.Key, SelectedRelayOrder.FrontToBack) ?? "";
+        Error = save(Slots.OrderBy(s => s.CurtainId).Select(s => s.SelectedColor.Key).ToArray(), FixedColor.Key, SelectedRelayOrder) ?? "";
         Notice = Error.Length == 0 ? "Saved" : "";
     }
     [RelayCommand]

@@ -18,7 +18,9 @@ public partial class MainViewModel
     private bool _restoreBackgroundButtonOnModeEntry;
     private void RestoreBackgroundButtonSelection(bool stage = true)
     {
-        var id = _settings.SimulateRelays ? _razr.SelectedSimulatedBackgroundId : _razr.SelectedBackgroundId;
+        var savedSlot = _settings.SimulateRelays ? _razr.SelectedSimulatedBackgroundId : _razr.SelectedBackgroundId;
+        if (savedSlot is not { } slot) return;
+        var id = CurtainPalette.MapMotor(slot, _palette.ReverseRelayAssignments);
         var selected = BackgroundOptions.FirstOrDefault(p => p.Id == id);
         if (selected is null) return;
         foreach (var option in BackgroundOptions) option.IsSelected = option == selected;

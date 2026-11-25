@@ -97,7 +97,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         FixedWhiteBackground.PreviewImage = fixedPreset.PreviewImage;
         for (var id = 1; id <= 4; id++)
         {
-            var preset = _palette.Colors.Single(c => c.Key == _palette.Slots[id - 1]);
+            var preset = ColorForMotor(id);
             Curtains.Add(new(id, preset.Name, preset.Color, preset.PreviewImage));
         }
         foreach (var curtain in Curtains) curtain.PropertyChanged += OnCurtainStatusChanged;
@@ -109,7 +109,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         for (var index = 0; index < DisplayCurtains.Count; index++)
             DisplayCurtains[index].DisplayLevel = index + 1;
         FixedWhiteBackground.DisplayLevel = 5;
-        BackgroundOptions = new[] { FixedWhiteBackground }.Concat(Curtains).ToArray();
+        BackgroundOptions = BuildBackgroundOptions();
         _themeStore = themeStore ?? new ThemePreferenceStore();
         // The kiosk now always starts dark, including installations with an old light preference.
         IsDarkMode = true;
@@ -281,15 +281,23 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         IsSettingsOpen = true;
     }
 
-    private string? SaveCurtainColors(string[] keys, string fixedKey, int[] frontToBack)
+    private string? SaveCurtainColors(string[] keys, string fixedKey, RelayLayerOrderChoice order)
     {
         if (_disposed || IsMoving) return "Wait until curtain commands finish.";
         try
         {
-            var updated = new CurtainPalette { Colors = CurtainSettings.FixedColors, Slots = keys, FixedBackground = fixedKey, RelayOrderFrontToBack = (int[])frontToBack.Clone() };
+            var updated = new CurtainPalette
+            {
+                Colors = CurtainSettings.FixedColors, Slots = keys, FixedBackground = fixedKey,
+                RelayOrderFrontToBack = (int[])order.FrontToBack.Clone(),
+                ReverseRelayAssignments = order.ReverseRelayAssignments
+            };
             updated.Validate();
+            var frontToBack = updated.RelayOrderFrontToBack;
             var orderChanged = !_settings.CurtainOrderFrontToBack.SequenceEqual(frontToBack);
-            if (orderChanged && Mode != ApplicationMode.Developer) return "Change relay layer order in Developer mode.";
+            var assignmentsChanged = _palette.ReverseRelayAssignments != updated.ReverseRelayAssignments;
+            if ((orderChanged || assignmentsChanged) && Mode != ApplicationMode.Developer)
+                return "Change relay order and assignments in Developer mode.";
             var nextBackgrounds = orderChanged && _relays is not null
                 ? new BackgroundController(_relays, frontToBack, TimeSpan.FromMilliseconds(_settings.ActivationMilliseconds), ReadCurrentCurtainState)
                 : _backgrounds;
@@ -299,12 +307,12 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
             FixedWhiteBackground.Name = fixedPreset.Name;
             FixedWhiteBackground.Color = Brush.Parse(fixedPreset.Color);
             FixedWhiteBackground.PreviewImage = fixedPreset.PreviewImage;
-            for (var index = 0; index < 4; index++)
+            foreach (var curtain in Curtains)
             {
-                var preset = updated.Colors.Single(c => c.Key == keys[index]);
-                Curtains[index].Name = preset.Name;
-                Curtains[index].Color = Brush.Parse(preset.Color);
-                Curtains[index].PreviewImage = preset.PreviewImage;
+                var preset = ColorForMotor(curtain.Id);
+                curtain.Name = preset.Name;
+                curtain.Color = Brush.Parse(preset.Color);
+                curtain.PreviewImage = preset.PreviewImage;
             }
             if (orderChanged)
             {
@@ -312,18 +320,24 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
                 _backgrounds = nextBackgrounds;
                 DisplayCurtains = frontToBack.Select(id => Curtains.Single(c => c.Id == id)).ToArray();
                 for (var index = 0; index < DisplayCurtains.Count; index++) DisplayCurtains[index].DisplayLevel = index + 1;
-                BackgroundOptions = new[] { FixedWhiteBackground }.Concat(Curtains).ToArray();
+                OnPropertyChanged(nameof(DisplayCurtains));
+                AddLog("Layer order saved · nearest to camera: " + string.Join(" → ", frontToBack.Select(id => $"R{id * 2 - 1}/R{id * 2}")));
+            }
+            if (assignmentsChanged)
+            {
+                BackgroundOptions = BuildBackgroundOptions();
                 OnPropertyChanged(nameof(BackgroundOptions));
                 OnPropertyChanged(nameof(PhotoboothBackgrounds));
                 OnPropertyChanged(nameof(SceneOptions));
-                OnPropertyChanged(nameof(DisplayCurtains));
-                ReconcileLayerOrderSelection();
-                AddLog("Layer order saved · nearest to camera: " + string.Join(" → ", frontToBack.Select(id => $"R{id * 2 - 1}/R{id * 2}")));
+                AddLog("Color relay assignments saved · " + string.Join(" · ", BackgroundOptions.Skip(1)
+                    .Select(c => $"{c.Name} R{c.Id * 2 - 1}/R{c.Id * 2}")));
             }
+            if (orderChanged || assignmentsChanged)
+                ReconcileLayerOrderSelection();
             var selected = BackgroundOptions.FirstOrDefault(c => c.IsSelected);
             if (selected is not null) SelectionLabel = $"{selected.Name} selected" + (_selectionRestored ? " (saved)" : "");
             OnPropertyChanged(nameof(SelectionColor));
-            AddLog("Settings saved · colors and layer order applied without movement");
+            AddLog("Settings saved · colors, relay assignments and layer order applied without movement");
             return null;
         }
         catch (Exception error) { return $"Could not save colors: {error.Message}"; }
@@ -469,8 +483,9 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         if (curtain is null || IsMoving || IsSettingsOpen || _disposed || _backgrounds is null) return;
         if (!BackgroundOptions.Contains(curtain)) return;
         var selected = _razr.Copy();
-        if (_settings.SimulateRelays) selected.SelectedSimulatedBackgroundId = curtain.Id;
-        else selected.SelectedBackgroundId = curtain.Id;
+        var slot = CurtainPalette.MapMotor(curtain.Id, _palette.ReverseRelayAssignments);
+        if (_settings.SimulateRelays) selected.SelectedSimulatedBackgroundId = slot;
+        else selected.SelectedBackgroundId = slot;
         try { _razrStore.Save(selected); _razr = selected; }
         catch (Exception error) { AddLog($"Could not save selected background: {error.Message}"); }
         if (curtain.IsSelected && !_selectionRestored) return;

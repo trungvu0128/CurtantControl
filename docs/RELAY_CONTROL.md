@@ -161,26 +161,29 @@ was introduced: skipping relies on completed application commands, not sensors.
 Standalone controller callers without a state reader retain the previous behavior.
 
 
-## Runtime relay layer order (0.7.0)
+## RAZR I layer order and color assignments
 
 Developer mode > Settings now shows Relay layers, with two nearest-to-farthest
 choices: R1/R2→R3/R4→R5/R6→R7/R8, or R7/R8→R5/R6→R3/R4→R1/R2.
-User Settings hides this control and cannot save a changed layer order. Both
-modes use the saved order. Save applies at idle, remains in Settings and never
-writes GPIO. Cancel/failed Save retain the previous mapping; saving during
-movement is rejected. Open remains odd relay and Close remains even relay.
-Physical color/relay IDs and five main/Settings color rows do not move.
+The four color rows stay in the same order. Settings previews the pair beside
+each color. Save applies the layer order and assignments together while idle.
+Both operating modes then use them at START. Open uses the odd relay and Close
+uses the even relay for the assigned motor.
 
-RelayOrderFrontToBack is an optional array in colors.json, saved atomically with
-Colors, Slots and FixedBackground. Its entries are physical motor IDs1..4.
-[1,2,3,4] means R1/R2 nearest; [4,3,2,1] means R7/R8 nearest. MainViewModel loads
-this saved value after palette validation, taking precedence over the app's
-paper-layout fallback. Existing files without the field retain current default
-behavior until Save. Legacy custom permutations are retained as a third current
-choice rather than silently rewritten; new UI choices are forward/reverse.
+| Color button position | R7/R8 nearest | R1/R2 nearest |
+| --- | --- | --- |
+| 1st motorized color (default Pink) | R1/R2 | R7/R8 |
+| 2nd motorized color (default Sky Blue) | R3/R4 | R5/R6 |
+| 3rd motorized color (default Green) | R5/R6 | R3/R4 |
+| 4th motorized color (default Purple) | R7/R8 | R1/R2 |
 
-Applying an order rebuilds only the background command planner, not GPIO output
-objects. Pending sample/draft selection is cleared and selected-background
-highlight is inferred again using the new order. Motor command states remain
-attached to physical IDs; saved estimates stay reapplyable. Per-motor skip logic
-and foreground-before-target ordering follow the chosen order on the next START.
+`colors.json` persists `RelayOrderFrontToBack` as physical motor IDs 1..4 and
+`ReverseRelayAssignments` alongside the ordered `Slots`. Existing files without
+`ReverseRelayAssignments` retain their saved assignments. Older R1/R2-nearest
+configurations and custom permutations are shown as a current setup until the
+operator selects a preset and saves.
+
+Physical motor command states stay with their relay pairs. The highlight is
+recalculated after Save, and White still closes any motor that is open or has
+an unconfirmed state. RAZR 3 shares the physical layer order and uses its own
+color assignments.

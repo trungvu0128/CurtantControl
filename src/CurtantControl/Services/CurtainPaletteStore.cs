@@ -13,10 +13,14 @@ public sealed class CurtainPalette
     [new("pink", "Pink", "#D989AE"), new("blue", "Sky Blue", "#60BCD5"),
      new("green", "Green", "#42AD6A"), new("purple", "Purple", "#9580D5")];
     public int[]? RelayOrderFrontToBack { get; set; }
+    public bool ReverseRelayAssignments { get; set; }
     public string FixedBackground { get; set; } = "white";
     public CurtainColorPreset GetFixedBackground() => Colors.FirstOrDefault(c => c.Key == FixedBackground)
         ?? new CurtainColorPreset("white", "White", "#FFFFFF", "Backgrounds/white.png");
     public string[] Slots { get; set; } = ["pink", "blue", "green", "purple"];
+
+    // Slot 0 is the fixed background. For moving curtains the same mapping works in both directions.
+    internal static int MapMotor(int id, bool reversed) => reversed && id != 0 ? 5 - id : id;
 
     public void Validate()
     {

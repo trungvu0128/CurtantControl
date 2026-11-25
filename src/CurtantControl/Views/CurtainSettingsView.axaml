@@ -26,7 +26,7 @@
                         <ComboBox ItemsSource="{Binding RelayOrders}" SelectedItem="{Binding SelectedRelayOrder, Mode=TwoWay}" HorizontalAlignment="Stretch" MinHeight="48" CornerRadius="12" AutomationProperties.Name="Relay layer order">
                             <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:RelayLayerOrderChoice"><TextBlock Text="{Binding Name}" FontSize="17" /></DataTemplate></ComboBox.ItemTemplate>
                         </ComboBox>
-                        <TextBlock Text="Save applies the order to the next START. No motor moves when saving." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
+                        <TextBlock Text="The rows below show each color’s relay pair. Save applies the order and assignments." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
                     </StackPanel>
                     <TextBlock Grid.Row="1" Text="BACKGROUND COLORS · BACKGROUND 1 → 5" FontSize="12" Foreground="{DynamicResource AccentTextBrush}" LetterSpacing="1" />
                     <ItemsControl Grid.Row="2" ItemsSource="{Binding DisplaySlots}">
@@ -52,7 +52,7 @@
                 <StackPanel VerticalAlignment="Center" Spacing="8" Margin="0,0,24,0">
                     <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ErrorBrush}" FontSize="14" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding Notice}" Foreground="{DynamicResource SuccessBrush}" FontSize="16" FontWeight="Bold" />
-                    <TextBlock Text="Save applies colors and layer order. Curtains will not move." Foreground="{DynamicResource MutedBrush}" FontSize="14" />
+                    <TextBlock Text="Curtains move after you select a background and press START." Foreground="{DynamicResource MutedBrush}" FontSize="14" />
                 </StackPanel>
                 <Button Grid.Column="1" Command="{Binding CancelCommand}" Content="Cancel" VerticalAlignment="Center" />
                 <Button Grid.Column="2" Command="{Binding SaveCommand}" Content="Save" Background="#F2AA7E" Foreground="#19191F"

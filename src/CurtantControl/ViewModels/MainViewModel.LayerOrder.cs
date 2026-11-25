@@ -6,6 +6,16 @@ namespace CurtantControl.ViewModels;
 
 public partial class MainViewModel
 {
+    private CurtainColorPreset ColorForMotor(int motorId)
+    {
+        var slot = CurtainPalette.MapMotor(motorId, _palette.ReverseRelayAssignments);
+        return _palette.Colors.Single(color => color.Key == _palette.Slots[slot - 1]);
+    }
+
+    private CurtainOption[] BuildBackgroundOptions() => new[] { FixedWhiteBackground }
+        .Concat(Enumerable.Range(1, 4).Select(slot => Curtains[CurtainPalette.MapMotor(slot, _palette.ReverseRelayAssignments) - 1]))
+        .ToArray();
+
     private CurtainCommandState ReadCurrentCurtainState(int id) => Curtains[id - 1].CommandStatus switch
     {
         "Opened" => CurtainCommandState.Opened,
@@ -32,7 +42,7 @@ public partial class MainViewModel
                 _selectionRestored = savedForeground || curtain.CommandStatus.EndsWith(" (saved)", StringComparison.Ordinal);
                 SelectionLabel = $"{curtain.Name} selected";
             }
-            else SelectionLabel = "Background unknown · layer order changed";
+            else SelectionLabel = "Background unknown · relay settings changed";
             OnPropertyChanged(nameof(SelectionColor));
             NotifyUserActions();
             return;
