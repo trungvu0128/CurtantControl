@@ -333,10 +333,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
                     .Select(c => $"{c.Name} R{c.Id * 2 - 1}/R{c.Id * 2}")));
             }
             if (orderChanged || assignmentsChanged)
-            {
-                _completedPaperBackgroundId = null;
                 ReconcileLayerOrderSelection();
-            }
             var selected = BackgroundOptions.FirstOrDefault(c => c.IsSelected);
             if (selected is not null) SelectionLabel = $"{selected.Name} selected" + (_selectionRestored ? " (saved)" : "");
             OnPropertyChanged(nameof(SelectionColor));
@@ -491,8 +488,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         else selected.SelectedBackgroundId = slot;
         try { _razrStore.Save(selected); _razr = selected; }
         catch (Exception error) { AddLog($"Could not save selected background: {error.Message}"); }
-        if (curtain.IsSelected && !_selectionRestored && (!UsesPaperRelaySequence ||
-            _pendingUserCurtain == curtain || IsBackgroundApplied(curtain))) return;
+        if (curtain.IsSelected && !_selectionRestored) return;
         if (Mode is ApplicationMode.User or ApplicationMode.Developer)
         {
             _selectionRestored = false;
@@ -516,7 +512,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
     {
         if (!IsRazrI || IsMoving || IsSettingsOpen || _disposed || _backgrounds is null) return;
         CancelUserDraft();
-        if (IsBackgroundApplied(FixedWhiteBackground)) return;
+        if (Curtains.All(c => c.CommandStatus == "Closed")) return;
         _selectionRestored = false;
         foreach (var option in BackgroundOptions) option.IsSelected = false;
         OnPropertyChanged(nameof(SelectionColor));
@@ -531,26 +527,11 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         _movement = movement;
         try
         {
-            if (UsesPaperRelaySequence)
-            {
-                _completedPaperBackgroundId = null;
-                var name = (selected ?? FixedWhiteBackground).Name;
-                Status = $"Setting {name} · running relay sequence…";
-                var id = selected?.Id ?? 0;
-                await _backgrounds!.ApplyPaperSequenceAsync(id, movement.Token, ReportCurtain,
-                    relay => AddLog($"{name} · sending R{relay} pulse"));
-                _completedPaperBackgroundId = id;
-            }
-            else if (selected is not null)
-            {
-                Status = $"Setting {selected.Name} · clearing curtains in front…";
+            Status = selected is null ? $"Setting {FixedWhiteBackground.Name} · closing all curtains…" : $"Setting {selected.Name} · clearing curtains in front…";
+            if (selected is not null)
                 await _backgrounds!.SelectAsync(selected.Id, movement.Token, ReportCurtain);
-            }
             else
-            {
-                Status = $"Setting {FixedWhiteBackground.Name} · closing all curtains…";
                 await _backgrounds!.CloseAllAsync(movement.Token, ReportCurtain);
-            }
             Status = _settings.SimulateRelays ? "Simulated relay command complete" : "Relay command complete";
         }
         catch (OperationCanceledException) { Status = "Stopped · curtain position unknown"; AddLog(Status); }
