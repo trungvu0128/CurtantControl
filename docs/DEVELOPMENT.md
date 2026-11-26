@@ -522,9 +522,11 @@ alongside camera startup. MainViewModel.Updates exposes a dismissible notice and
 Developer modal, never auto-installing. Version/tag and exact public GitHub asset
 selection, streamed SHA256/size validation and preparation are separate from UI.
 apply-update.py runs under a transient user systemd unit to survive keycheck
-restart, validates/extracts before READY, waits for parent exit then invokes the
-existing full backup/setup. Cancellation marker and unit stop prevent delayed
-installation after cancel. Documented limits, diagnostics and publishing steps:
+restart, validates before READY and waits for parent exit. Publish-DeviceFinal
+stamps the packaged worker with its system setup digest before writing manifests.
+Matching full bundles on a configured installation use setup.stage_install as pi.
+Changed system setup uses the snapshot installer with noninteractive sudo.
+Cancellation stops preparation before installation. See
 UPDATES.md. Publisher uses local Git credentials, uploads draft assets and checks
 server digests before publishing; never embeds a token in the Pi app.
 

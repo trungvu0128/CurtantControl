@@ -39,10 +39,44 @@ installed in the app. No GitHub token or Git
 installation is needed on the Pi; the repository and its releases are public.
 
 Automatic installation targets Pi4, Raspbian/Debian10 Buster ARM32 and desktop
-user `pi`. It requires the user's systemd session bus and existing noninteractive
-sudo permission. It never changes sudoers. Windows can check but cannot install
-the Pi bundle. Missing dependencies/permissions are rejected before app close;
-the full manual installer is the fallback.
+user `pi` with a user systemd session. With the new updater installed, a full
+download can replace the entire application as `pi`. Updates checks the native
+libraries, bundle system setup revision, installed button script, logo and
+service override, and whether keycheck is active and enabled. If they match,
+Updates saves the previous app folder and preserves the installer's supported
+local settings. This path never calls sudo.
+
+Changed system setup or an incomplete installation uses the existing system
+installer with noninteractive sudo. If authorization is unavailable, preparation
+stops with the old app open and the verified archive in cache. Devices on 0.12.6
+can bootstrap the new worker with a compatible small patch. Their existing
+worker still requires sudo for full bundles. Run `sudo -n -v` on
+the Pi as `pi` to see the sudo error.
+If sudo requests a password, verify access with `sudo -v`, then run `sh install.sh`
+inside the extracted full bundle as `pi`. The installer prompts for sudo when
+needed. If sudo says `pi` is unauthorized, use the Pi administrator to resolve
+access first.
+
+The full archive and its `.sha256` remain in the failed cache job. To reuse
+them, close the app, open a Pi terminal as `pi`, and set `version` to the
+version the app was downloading:
+
+```sh
+version=0.12.6
+name="CurtantControl-Final-v$version-pi-buster-arm.tar.gz"
+bundle=$(find "$HOME/.cache/CurtantControl/updates" -type f -name "$name" -print -quit)
+if [ -n "$bundle" ]; then
+    (cd "$(dirname "$bundle")" &&
+     sha256sum -c "$name.sha256" && sudo -v &&
+     tar -xzf "$name" && sh "${name%.tar.gz}/install.sh")
+else
+    printf '%s\n' 'Bundle not found in the update cache.' >&2
+fi
+```
+
+If the worker records a negative sudo subprocess status, sudo was terminated
+by a signal. For example, `-1` is `SIGHUP`. Read the update service journal to
+identify the interruption and the command that was running.
 
 ## Installation transaction
 
@@ -51,16 +85,15 @@ the full manual installer is the fallback.
 2. Start `apply-update.py` in a transient **user** systemd service, separate from
    keycheck.service. Extract to a unique cache job; reject traversal, links,
    special files, duplicates, archive-size violations and bad manifests.
-3. Verify Pi/OS/architecture, native libraries, disk space and sudo before signaling
-   readiness. Keep old app open until ready. Cancellation writes a durable marker
-   and stops the worker; the worker checks this marker before installation.
-4. Close the app gracefully. Worker waits for its original PID to exit (30s max).
-   Only then run full setup with `--skip-packages`, preserving the normal full
-   backup, configuration/PIN/state and keycheck/shortcut migration. A centered
-   progress popup appears during this phase when Tk is available.
-5. On installer failure, attempt snapshot restore and keycheck restart. Restart
-   the installed/restored app by exec in the user unit. No forced app kill or
-   install while the old process still holds files/hardware.
+3. Check the device and select the application-only or system setup path before
+   signaling readiness. Application-only updates take the launch lock shared
+   with physical buttons. Cancellation stops the worker before installation.
+4. Wait for the original app to exit. For application-only updates, stage the
+   entire payload with the verified setup module, preserve configuration and
+   swap the directory. The previous app remains in `app-backup-*` beside the
+   installation. Staging restores it if the final directory rename fails.
+5. For system setup, use the existing full snapshot, setup and rollback
+   workflow with noninteractive sudo. The user service relaunches the app.
 
 Automatic setup uses existing OS dependencies; new OS dependencies require the
 manual full installer. A failed restore, power loss or filesystem failure can

@@ -21,6 +21,49 @@ class IncompatibleUpdate(ValueError):
     pass
 
 
+# The final-bundle publisher stamps the installed worker with its system setup revision.
+SYSTEM_REVISION = 'unstamped'
+KEYCHECK_OVERRIDE = Path('/etc/systemd/system/keycheck.service.d/override.conf')
+SYSTEM_FILES = ('install.sh', 'setup.py', 'legacy_kiosk.py', 'keycheck/install.sh',
+                'keycheck/configure_autostart.py', 'keycheck/keycheck.service', 'keycheck/override.conf',
+                'keycheck/key_check_new.py', 'keycheck/123click-logo.png')
+
+
+def system_revision(base):
+    digest = hashlib.sha256()
+    for name in SYSTEM_FILES:
+        digest.update(bytes.fromhex(file_hash(base / name)))
+    return digest.hexdigest()
+
+
+def can_update_app_only(base):
+    app = app_directory()
+    if (SYSTEM_REVISION == 'unstamped' or SYSTEM_REVISION != system_revision(base)
+            or not (app / 'CurtantControl').is_file() or app.resolve() != app
+            or not os.access(str(app.parent), os.W_OK | os.X_OK)):
+        return False
+    installed = {'key_check_new.py': Path.home() / 'r1/key_check_new.py',
+                 '123click-logo.png': Path.home() / 'r1/123click-logo.png',
+                 'override.conf': KEYCHECK_OVERRIDE}
+    for name, path in installed.items():
+        if not path.is_file() or file_hash(path) != file_hash(base / 'keycheck' / name):
+            return False
+    return all(subprocess.run(['systemctl', action, '--quiet', 'keycheck.service'],
+                              timeout=10).returncode == 0 for action in ('is-active', 'is-enabled'))
+
+
+def install_app_only(base):
+    # Only the verified installer with the same system revision supplies stage_install.
+    import runpy
+
+    app = app_directory()
+    if any(exe.resolve() == app / 'CurtantControl' for exe in running_executables()):
+        raise ValueError('Close CurtantControl before applying this update.')
+    backup = runpy.run_path(str(base / 'setup.py'))['stage_install'](base / 'payloads/buster-arm', app)
+    print('Previous app folder saved in ' + str(backup), flush=True)
+    return backup
+
+
 def file_hash(path):
     digest = hashlib.sha256()
     with path.open('rb') as source:
@@ -144,7 +187,13 @@ def clean_completed_updates():
                 continue  # Give the old progress overlay a chance to see completion.
             full = job / 'extracted' / ('CurtantControl-Final-v%s-pi-buster-arm' % version)
             if full.is_dir():
-                preserve_recovery(full)
+                if 'appBackup' in status:
+                    backup = Path(status['appBackup'])
+                    if (not re.fullmatch(r'app-backup-[0-9-]+', backup.name)
+                            or backup.parent != app_directory().parent or not backup.is_dir()):
+                        raise ValueError('Previous app folder missing. Installer files were kept.')
+                else:
+                    preserve_recovery(full)
             retired_job = job.with_name('.cleanup-' + job.name)
             job.rename(retired_job)
             shutil.rmtree(str(retired_job))
@@ -153,8 +202,10 @@ def clean_completed_updates():
             print('Update cleanup skipped: ' + str(error), file=sys.stderr, flush=True)
 
 
-def report(path, phase, message, version):
+def report(path, phase, message, version, app_backup=None):
     data = {'phase': phase, 'message': message, 'version': version}
+    if app_backup is not None:
+        data['appBackup'] = str(app_backup)
     for target in (path, Path.home() / '.local/share/CurtantControl/update-status.json'):
         target.parent.mkdir(parents=True, exist_ok=True)
         temporary = target.with_name(target.name + '.tmp')
@@ -322,8 +373,6 @@ def wait_parent(pid, seconds=30, cancelled=None):
 
 
 def install(base, environment):
-    # The desktop service has no terminal: force non-interactive sudo for every
-    # installer subprocess rather than waiting invisibly for a password prompt.
     wrapper = base.parent / 'bin'
     wrapper.mkdir(exist_ok=True)
     sudo = wrapper / 'sudo'
@@ -332,7 +381,7 @@ def install(base, environment):
     environment = dict(environment, PATH=str(wrapper) + os.pathsep + environment.get('PATH', ''))
     try:
         subprocess.run(['/usr/bin/python3', str(base / 'setup.py'), '--skip-packages'], env=environment, check=True)
-    except Exception:
+    except (Exception, KeyboardInterrupt):
         pointer = base / '.rollback-target'
         if pointer.is_file():
             backup = pointer.read_text().strip()
@@ -348,6 +397,27 @@ def verify_device(base):
                                 stderr=subprocess.STDOUT, universal_newlines=True, timeout=15)
         if result.returncode or 'not found' in result.stdout:
             raise ValueError('A required system library is missing. Run the full installer manually.')
+
+
+def verify_full_update_sudo(archive):
+    manual = ('To install manually, extract the full bundle and run sh install.sh in a Pi terminal as pi.\n'
+              'Downloaded bundle: ' + str(archive))
+    try:
+        result = subprocess.run(['/usr/bin/sudo', '-n', '-v'], stdout=subprocess.DEVNULL,
+                                stderr=subprocess.PIPE, universal_newlines=True, timeout=10,
+                                env=dict(os.environ, LC_ALL='C'))
+    except subprocess.TimeoutExpired as error:
+        raise ValueError('Sudo verification timed out. ' + manual) from error
+    if result.returncode == 0:
+        return
+    detail = result.stderr.strip()
+    if result.returncode < 0:
+        termination = str(subprocess.CalledProcessError(result.returncode, 'sudo -n -v'))
+        message = termination + ('\n' + detail if detail else '')
+        raise ValueError(message + '\nCheck the update service log for the interruption. ' + manual)
+    detail = detail or 'sudo exited with status %d' % result.returncode
+    message = 'System setup is required for this bundle. Updates cannot perform it without administrator access. ' + manual + '\n' + detail
+    raise ValueError(message)
 
 
 def verify_platform():
@@ -379,10 +449,21 @@ def manual_small(archive):
         print('Update installed, but cleanup could not finish: ' + str(error), file=sys.stderr, flush=True)
 
 
-def main():
-    if len(sys.argv) != 5:
+def restart_app(status, version):
+    app = app_directory() / 'CurtantControl'
+    if app.is_file():
+        os.chdir(str(app.parent))
+        # Exec keeps the app in the user service, outside keycheck.
+        os.execv(str(app), [str(app)])
+    report(status, 'failed', 'App could not be restarted. Check the update log.', version)
+    return 1
+
+
+def main(arguments=None):
+    arguments = sys.argv[1:] if arguments is None else arguments
+    if len(arguments) != 4:
         sys.exit('Usage: apply-update.py ARCHIVE VERSION PARENT_PID STATUS')
-    archive, version, pid, status = Path(sys.argv[1]).resolve(), sys.argv[2], int(sys.argv[3]), Path(sys.argv[4]).resolve()
+    archive, version, pid, status = Path(arguments[0]).resolve(), arguments[1], int(arguments[2]), Path(arguments[3]).resolve()
     cache = (Path.home() / '.cache/CurtantControl/updates').resolve()
     if not re.fullmatch(r'\d+\.\d+\.\d+', version) or pid <= 1 or cache not in archive.parents or status.parent != archive.parent:
         raise ValueError('Invalid update job.')
@@ -392,15 +473,20 @@ def main():
     small = archive.suffix == '.zip'
     startup_lock = None
     try:
+        app_backup = None
         report(status, 'preparing', 'Verifying update files', version)
         if small:
             startup_lock = lock_app_startup()
             verify_platform()
             patch = prepare_small(archive, version, app_directory())
         else:
-            subprocess.run(['/usr/bin/sudo', '-n', '-v'], check=True, timeout=10)
             base = extract_verified(archive, version, archive.parent)
             verify_device(base)
+            app_only = can_update_app_only(base)
+            if app_only:
+                startup_lock = lock_app_startup()
+            else:
+                verify_full_update_sudo(archive)
         report(status, 'ready', 'Ready; waiting for the current app to close', version)
         wait_parent(pid, cancelled=archive.parent / 'cancelled')
         can_restart = True
@@ -412,24 +498,20 @@ def main():
             pass
         if small:
             install_small(app_directory(), patch)
+        elif app_only:
+            app_backup = install_app_only(base)
         else:
             install(base, os.environ)
-        report(status, 'complete', 'Update installed successfully', version)
-    except Exception as error:
-        report(status, 'incompatible' if isinstance(error, IncompatibleUpdate) and not can_restart else 'failed', str(error), version)
+        report(status, 'complete', 'Update installed successfully', version, app_backup=app_backup)
+    except (Exception, KeyboardInterrupt) as error:
+        report(status, 'incompatible' if isinstance(error, IncompatibleUpdate) and not can_restart else 'failed',
+               str(error) or 'Update interrupted.', version)
         if not can_restart:
             return 1
     finally:
         if startup_lock is not None:
             startup_lock.close()
-    app = app_directory() / 'CurtantControl'
-    if app.is_file():
-        os.chdir(str(app.parent))
-        # Keep the new app outside keycheck.service's cgroup. Restarting keycheck
-        # during install cannot kill this worker; exec retains the user unit.
-        os.execv(str(app), [str(app)])
-    report(status, 'failed', 'App could not be restarted. Check the update log.', version)
-    return 1
+    return restart_app(status, version)
 
 
 if __name__ == '__main__':

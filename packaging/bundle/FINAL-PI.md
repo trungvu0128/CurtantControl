@@ -128,7 +128,10 @@ Nếu app vẫn chưa thoát, xem `tail -n 30 ~/.local/share/CurtantControl/shut
 Mỗi lần mở app, tự kiểm tra GitHub Releases trong nền. Có bản mới sẽ hiện thông
 báo; không tự cài. Vào Developer mode → Updates → Download & install để tải,
 kiểm tra checksum, backup và cập nhật. App chỉ đóng sau khi gói đã chuẩn bị xong;
-cài xong tự mở lại. Cần phiên desktop pi và quyền sudo không hỏi mật khẩu sẵn có.
+cài xong tự mở lại. Với trình cập nhật mới, nếu phần hệ thống của bộ cài vẫn
+khớp và dịch vụ nút bấm đã sẵn sàng, gói đầy đủ chỉ thay thư mục ứng dụng
+bằng tài khoản pi. Không cần nhập mật khẩu. Nếu cần sửa phần hệ thống và máy
+yêu cầu mật khẩu quản trị, Updates giữ app mở và giữ lại gói đã tải.
 Nếu thiếu thư viện OS, dùng bộ cài đầy đủ bằng terminal. Cài bộ đầy đủ0.11.0 một
 lần để có updater; bản small ba file trước đây không có helper tự cài.
 Repo: https://github.com/trungvu0128/CurtantControl/releases

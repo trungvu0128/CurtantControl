@@ -16,11 +16,12 @@ updates = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(updates)
 
 
-def bundle(job, extra=None, tamper=False):
+def bundle(job, extra=None, tamper=False, contents=None):
     version = '0.11.0'
     top = 'CurtantControl-Final-v' + version + '-pi-buster-arm'
     files = {'VERSION.txt': version.encode(), 'setup.py': b'pass', 'rollback.py': b'pass',
              'keycheck/install.sh': b'pass', 'payloads/buster-arm/CurtantControl': b'exe'}
+    files.update(contents or {})
     for directory in ('keycheck', 'payloads/buster-arm'):
         manifest = {k[len(directory)+1:]: hashlib.sha256(v).hexdigest() for k,v in files.items() if k.startswith(directory+'/')}
         files[directory+'/SHA256SUMS.json'] = json.dumps(manifest).encode()
@@ -189,10 +190,127 @@ class UpdateWorkerTests(unittest.TestCase):
             def wait(pid,**kwargs):
                 self.assertEqual(json.loads(status.read_text())['phase'],'ready')
                 events.append('wait')
-            with patch.object(Path,'home',return_value=home), patch.object(updates.sys,'argv',['apply-update.py',str(archive),'0.11.0','100',str(status)]), patch.object(updates.os,'geteuid',return_value=1000,create=True), patch.object(updates.subprocess,'check_output',return_value='pi'), patch.object(updates.subprocess,'run'), patch.object(updates.subprocess,'Popen'), patch.object(updates,'extract_verified',return_value=base), patch.object(updates,'verify_device',side_effect=lambda b:events.append('verify')), patch.object(updates,'wait_parent',side_effect=wait), patch.object(updates,'install',side_effect=lambda b,e:events.append('install')), patch.object(updates.os,'chdir'), patch.object(updates.os,'execv',side_effect=Restart) as restart:
+            with patch.object(Path,'home',return_value=home), patch.object(updates.sys,'argv',['apply-update.py',str(archive),'0.11.0','100',str(status)]), patch.object(updates.os,'geteuid',return_value=1000,create=True), patch.object(updates.subprocess,'check_output',return_value='pi'), patch.object(updates.subprocess,'run',return_value=SimpleNamespace(returncode=0)), patch.object(updates.subprocess,'Popen'), patch.object(updates,'extract_verified',return_value=base), patch.object(updates,'verify_device',side_effect=lambda b:events.append('verify')), patch.object(updates,'wait_parent',side_effect=wait), patch.object(updates,'install',side_effect=lambda b,e:events.append('install')), patch.object(updates.os,'chdir'), patch.object(updates.os,'execv',side_effect=Restart) as restart:
                 with self.assertRaises(Restart): updates.main()
                 self.assertEqual(events,['verify','wait','install'])
                 self.assertEqual(restart.call_args.args[0],str(app))
+
+    def test_full_update_reports_sudo_denial_before_closing_app(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            job = home / '.cache/CurtantControl/updates/job'
+            job.mkdir(parents=True)
+            archive = bundle(job)
+            status = job / 'status.json'
+            argv = ['apply-update.py', str(archive), '0.11.0', '100', str(status)]
+            denial = SimpleNamespace(returncode=1, stderr='sudo: a password is required\n')
+            with patch.object(Path, 'home', return_value=home), \
+                 patch.object(updates.sys, 'argv', argv), \
+                 patch.object(updates.os, 'geteuid', return_value=1000, create=True), \
+                 patch.object(updates.subprocess, 'check_output', return_value='pi'), \
+                 patch.object(updates.subprocess, 'run', return_value=denial) as run, \
+                 patch.object(updates, 'verify_device'), \
+                 patch.object(updates, 'extract_verified') as extract, \
+                 patch.object(updates, 'wait_parent') as wait, \
+                 patch.object(updates, 'install') as install:
+                self.assertEqual(updates.main(), 1)
+            self.assertEqual(run.call_args.args[0], ['/usr/bin/sudo', '-n', '-v'])
+            extract.assert_called_once()
+            wait.assert_not_called()
+            install.assert_not_called()
+            result = json.loads(status.read_text(encoding='utf-8'))
+            self.assertEqual(result['phase'], 'failed')
+            self.assertIn('sudo: a password is required', result['message'])
+            self.assertIn('run sh install.sh', result['message'])
+            self.assertIn(str(archive), result['message'])
+
+    def test_stamped_full_update_runs_as_desktop_user_and_preserves_settings(self):
+        import runpy
+        import shutil
+
+        repo = Path(__file__).resolve().parents[1]
+        stamp = runpy.run_path(str(repo / 'scripts/stamp-update-worker.py'))['stamp']
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp).resolve()
+            job = home / '.cache/CurtantControl/updates' / ('b' * 32)
+            job.mkdir(parents=True)
+            package = home / 'package'
+            payload = package / 'payloads/buster-arm'
+            payload.mkdir(parents=True)
+            worker = payload / 'apply-update.py'
+            shutil.copyfile(updates.__file__, worker)
+            contents = {}
+            for name in updates.SYSTEM_FILES:
+                source = repo / ('packaging/raspberry-pi' if name.startswith('keycheck/') else 'packaging/bundle') / name
+                target = package / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(source.read_bytes())
+                contents[name] = target.read_bytes()
+            stamp(package)
+            revision = runpy.run_path(str(worker))['SYSTEM_REVISION']
+            self.assertEqual(revision, updates.system_revision(package))
+            for name in ('start.sh', 'diagnose.sh', 'libcoreclr.so', 'colors.json'):
+                contents['payloads/buster-arm/' + name] = b'{}'
+            archive = bundle(job, contents=contents)
+            status = job / 'status.json'
+            override = home / 'override.conf'
+            override.write_bytes(contents['keycheck/override.conf'])
+            (home / 'r1').mkdir()
+            for name in ('key_check_new.py', '123click-logo.png'):
+                (home / 'r1' / name).write_bytes(contents['keycheck/' + name])
+            app = home / '.local/share/CurtantControl/app'
+            app.mkdir(parents=True)
+            (app / 'CurtantControl').write_bytes(b'original app')
+            (app / 'colors.json').write_bytes(b'{"custom":true}')
+            calls = []
+
+            def systemctl(command, **kwargs):
+                self.assertEqual(command[0], 'systemctl')
+                self.assertIn(command[1], ('is-active', 'is-enabled'))
+                calls.append(command[1])
+                return SimpleNamespace(returncode=0)
+
+            def wait(pid, **kwargs):
+                self.assertEqual(json.loads(status.read_text())['phase'], 'ready')
+                self.assertEqual((app / 'CurtantControl').read_bytes(), b'original app')
+
+            with patch.object(Path, 'home', return_value=home), \
+                 patch.object(updates, 'SYSTEM_REVISION', revision), \
+                 patch.object(updates, 'KEYCHECK_OVERRIDE', override), \
+                 patch.object(updates.os, 'geteuid', return_value=1000, create=True), \
+                 patch.object(updates.subprocess, 'check_output', return_value='pi'), \
+                 patch.object(updates.subprocess, 'run', side_effect=systemctl), \
+                 patch.object(updates.subprocess, 'Popen'), patch.object(updates, 'verify_device'), \
+                 patch.object(updates, 'lock_app_startup'), patch.object(updates, 'running_executables', return_value=[]), \
+                 patch.object(updates, 'wait_parent', side_effect=wait), patch.object(updates, 'restart_app') as restart:
+                updates.main([str(archive), '0.11.0', '100', str(status)])
+                restart.assert_called_once()
+                result = json.loads(status.read_text())
+                self.assertEqual(result['phase'], 'complete')
+                self.assertEqual(calls, ['is-active', 'is-enabled'])
+                backup = Path(result['appBackup'])
+                self.assertEqual((backup / 'CurtantControl').read_bytes(), b'original app')
+                self.assertEqual((app / 'CurtantControl').read_bytes(), b'exe')
+                self.assertEqual((app / 'colors.json').read_bytes(), b'{"custom":true}')
+                os.utime(status, (1, 1))
+                updates.clean_completed_updates()
+                self.assertFalse(job.exists())
+                self.assertTrue(backup.is_dir())
+                with patch.object(updates.subprocess, 'run', return_value=SimpleNamespace(returncode=1)):
+                    self.assertFalse(updates.can_update_app_only(package))
+                override.write_bytes(b'custom')
+                self.assertFalse(updates.can_update_app_only(package))
+                override.write_bytes(contents['keycheck/override.conf'])
+                (package / 'setup.py').write_bytes(b'new system setup')
+                self.assertFalse(updates.can_update_app_only(package))
+
+    def test_full_update_distinguishes_sudo_signal_from_password_failure(self):
+        interrupted = SimpleNamespace(returncode=-1, stderr='sudo was interrupted\n')
+        with patch.object(updates.subprocess, 'run', return_value=interrupted):
+            with self.assertRaisesRegex(ValueError, 'Signal|signal') as error:
+                updates.verify_full_update_sudo(Path('/tmp/downloaded-full.tar.gz'))
+        self.assertIn('sudo was interrupted', str(error.exception))
+        self.assertIn('update service log', str(error.exception))
 
     def test_verified_archive_and_version(self):
         with tempfile.TemporaryDirectory() as temp:

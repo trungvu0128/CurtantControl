@@ -250,7 +250,9 @@ public sealed class GitHubAppUpdates(HttpClient? client = null) : IAppUpdateServ
             _preparedCancellationPath = Path.Combine(directory, "cancelled");
             _preparedEnvironment = environment;
             await RunAsync("/usr/bin/systemd-run", args, environment, token).ConfigureAwait(false);
-            for (var i = 0; i < 240; i++)
+            var preparation = Stopwatch.StartNew();
+            var deadline = TimeSpan.FromMinutes(small is null ? 10 : 2);
+            while (preparation.Elapsed < deadline)
             {
                 token.ThrowIfCancellationRequested();
                 if (File.Exists(status))
@@ -263,7 +265,7 @@ public sealed class GitHubAppUpdates(HttpClient? client = null) : IAppUpdateServ
                 }
                 await Task.Delay(500, token).ConfigureAwait(false);
             }
-            throw new TimeoutException("Update preparation timed out. The current app has not been replaced.");
+            throw new TimeoutException("Update preparation timed out. The current app was kept.");
         }
         finally
         {

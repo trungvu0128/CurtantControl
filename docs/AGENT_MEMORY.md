@@ -1312,3 +1312,93 @@ The public patch download passed SHA-256 verification. No physical Pi run.
 corners stay visible. The tile uses a rounded keyboard focus indicator and keeps
 the red outline when selected with focus. Debug and Release passed. The rendered
 focus state showed red at all four corners, and the RAZR I preview matched its reference.
+
+2026-11-23 published v0.12.2 from c212182. Debug and Release Buster ARM32
+builds, 105 app checks, 61 Python checks and the four-corner RAZR 3 focus render
+passed. Applied the small update to a copy of the public v0.12.1 bundle and
+verified replaced files, backups and preserved settings. The GitHub tag, four
+asset digests and downloaded patch matched the local release. No physical Pi run.
+
+2026-11-23 investigated a reported sudo error during full update. Verified the
+v0.12.2 full archive and reproduced a simulated password-required denial before
+app close. The worker now preserves sudo's actual error and points to manual
+installation as pi. The user reported code -1. As a Python subprocess return
+code on Linux that means SIGHUP, and the worker now reports signal termination
+separately from denial. The device journal is pending. Debug and Release,
+105 app and 63 Python checks, Python 3.7 syntax and ARM32 Buster/ARM64 cross-publishes
+passed. The diagnostics change has no new GitHub release or physical Pi test.
+
+2026-11-25 investigated a possible RAZR I layer reversal issue. The v0.12.2
+RelayChecks suite passed. Headless Settings selection and Save persisted both
+orders at 800×480 and 1280×760 with no relay pulse on Save. With M1 and M4
+open, M2 emitted R2 then R3 for M1-nearest, or R8 then R3 for M4-nearest.
+Paper button order, physical relay pairs and White behavior are independent of
+this setting. No app code change. Actual Pi behavior remains unconfirmed.
+
+2026-11-25 user requested RAZR I relay presets also reverse color assignments.
+R7/R8-nearest keeps Pink through Purple on M1 through M4. R1/R2-nearest maps
+the color slots to M4 through M1 in the same button order. Save persists mapping
+and layer order together and leaves physical motor states attached to their IDs.
+Legacy mappings stay active until a preset is selected. RAZR 3 keeps its own
+color assignments. Debug/Release, 106 checks, 800×480 and 1280×760 headless
+Settings interaction, and Pi Buster ARM32/ARM64 cross-publishes passed.
+
+2026-11-25 published v0.12.3 from 5c28036. Release packaging from an isolated
+worktree included the RAZR I change. The pending sudo diagnostic edits stayed
+local. Debug/Release, 106 app and 61 Python checks, Buster ARM32 packaging, and
+small/full update staging against copies of v0.12.2 passed. Preserved the old
+defaults JSON line endings for exact small-update compatibility. GitHub tag,
+four asset digests and the downloaded patch matched the local release.
+No physical Pi test.
+
+2026-11-25 user requested the literal relay order from the new sheet. RAZR I
+with the saved R1/R2-nearest reversed preset runs White 1/3/5/7, Pink 8/5/3/1,
+Sky Blue 6/3/1, Green 4/1, Purple 1, one timed pulse at a time. The same R1
+appears under White and Purple as written. A completed sequence marks only
+command completion and leaves affected physical positions Unknown. Stop or
+error aborts remaining pulses. Debug/Release, 107 tests and Buster ARM32
+cross-publish passed. Physical movement remains unverified.
+
+2026-11-25 published v0.12.4 from cf1a894. Debug/Release, 107 app and 61 Python
+checks and Buster ARM32 packaging passed. The small and full updates were tested
+against copies of v0.12.3 with customized settings, and backups were verified.
+The GitHub tag, all four asset digests and the public patch download matched.
+No physical Pi test.
+
+2026-11-25 user requested rollback of v0.12.4. Published v0.12.5 from 588bb89
+with v0.12.3 source behavior and a newer version for the updater. Only the
+version field differs from the v0.12.3 source tree. Debug/Release, 106 app
+and 61 Python checks and Buster ARM32 packaging passed. Applied small updates
+and staged full updates on copies of v0.12.3 and v0.12.4, preserving settings
+and checking backups. GitHub tag, six asset digests and both downloaded
+patches matched. No physical Pi test.
+
+2026-11-25 restored v0.12.4 RAZR I behavior in source and extended the shared
+relay preset to RAZR 3. The models maintain independent colors and share the
+mapping by backdrop slot and relay planning. Under R1/R2 nearest, RAZR 3 White,
+Sky Blue, Green, Purple, Gray use 1/3/5/7, 8/5/3/1, 6/3/1, 4/1, 1 respectively.
+Indoor pulses start after Room 1 settles. Open landscape leaves the relays off.
+Debug/Release, 108 host checks, 800×480 renders, and ARM32 Buster/ARM64
+cross-publishes passed. No physical Pi test.
+
+2026-11-25 published v0.12.6 from 3510d37. Debug/Release, 108 app checks, 61
+Python checks and Buster ARM32 packaging passed. Tested small patches and full
+staging on copies of v0.12.4 and v0.12.5 with saved settings and verified backups.
+GitHub tag, all six digests and both public patch downloads matched. Physical
+Pi operation still needs verification.
+
+2026-11-26 device report clarified full-update failure as sudo -n -v exit 1.
+Reproduced the v0.12.6 worker failing before app close and leaving a verified
+bundle and checksum reusable in the cache. Exit 1 alone does not identify the
+Pi's authorization error. Unreleased diagnostics now include the retained
+archive path. Added terminal recovery instructions without sudo policy changes.
+Debug/Release, 63 Python tests and Python 3.7 syntax checks passed. No Pi run.
+
+2026-11-26 full Updates stages the whole app as pi when the system setup
+revision and installed keycheck files match and keycheck is enabled and active.
+The publisher stamps the revision before manifest generation. The directory
+swap keeps a backup and existing configuration. System changes use existing
+noninteractive sudo or stop before app closure. Devices on 0.12.6 can bootstrap
+with a compatible small patch. Debug/Release and ARM32 Buster/ARM64 cross-
+publishes passed, as did 64 Python tests including a full app swap, preserved
+settings, cache cleanup and pre-handoff refusal. No physical Pi test or release.

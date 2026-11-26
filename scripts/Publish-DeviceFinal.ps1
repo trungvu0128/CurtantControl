@@ -54,6 +54,8 @@ function Write-Manifest([string]$directory) {
     }
     [IO.File]::WriteAllText((Join-Path $directory 'SHA256SUMS.json'), ($hashes | ConvertTo-Json), $utf8)
 }
+& python (Join-Path $PSScriptRoot 'stamp-update-worker.py') $bundle
+if ($LASTEXITCODE -ne 0) { throw 'Could not bind the update worker to the system setup.' }
 Write-Manifest $payload
 Write-Manifest (Join-Path $bundle 'keycheck')
 Write-Manifest $bundle
