@@ -177,7 +177,8 @@ await Check("returning to applied background disables START without resending re
 
 await Check("paper five backgrounds map White and M1-M4 to the exact relay table", async () =>
 {
-    for (var id = 0; id <= 4; id++)
+    int[][] sequences = [[2, 4, 6, 8], [8, 6, 4, 1], [8, 6, 3], [8, 5], [7]];
+    for (var id = 0; id < sequences.Length; id++)
     {
         var output = new RecordingOutput();
         await using var vm = new MainViewModel(new PhotoboothSettings
@@ -189,9 +190,7 @@ await Check("paper five backgrounds map White and M1-M4 to the exact relay table
         await vm.SelectCurtainCommand.ExecuteAsync(vm.BackgroundOptions.Single(c => c.Id == id));
         Assert(output.Events.Count == before && vm.CanStart, "Paper background selection did not stage.");
         await vm.StartBackgroundCommand.ExecuteAsync(null);
-        var expected = id == 0 ? new[] { 2, 4, 6, 8 }
-            : Enumerable.Range(id + 1, 4 - id).Select(m => m * 2).Append(id * 2 - 1).Order().ToArray();
-        Assert(output.Events.Where(e => e.On).Select(e => e.Channel).Order().SequenceEqual(expected.Order()), "Paper relay table mismatch.");
+        Assert(output.Events.Where(e => e.On).Select(e => e.Channel).SequenceEqual(sequences[id]), "Paper relay table mismatch.");
         Assert(!vm.CanStart, "Completed paper background still enables START.");
         Assert(vm.BackgroundOptions.Single(c => c.Id == id).IsSelected, "Applied paper background is not highlighted.");
     }
@@ -225,11 +224,13 @@ await Check("fixed background palette choice saves atomically, reloads, and stil
     vm.CurtainSettings.CancelCommand.Execute(null);
     await vm.SelectCurtainCommand.ExecuteAsync(vm.Curtains[3]);
     await vm.StartBackgroundCommand.ExecuteAsync(null);
+    Assert(vm.Curtains.Count(c => c.CommandStatus == "Closed") == 3, "White test requires three already closed curtains.");
     before = output.Events.Count;
     await vm.SelectCurtainCommand.ExecuteAsync(vm.FixedWhiteBackground);
     Assert(output.Events.Count == before, "Fixed selection in Developer sent relays before START.");
     await vm.StartBackgroundCommand.ExecuteAsync(null);
-    Assert(output.Events.Skip(before).Where(e => e.On).Select(e => e.Channel).Order().SequenceEqual(new[] { 8 }), "Fixed background did not close only the open motor.");
+    Assert(output.Events.Skip(before).Where(e => e.On).Select(e => e.Channel).SequenceEqual(new[] { 2, 4, 6, 8 }),
+        "Fixed background did not send all four close pulses in order.");
     await using var restored = new MainViewModel(new PhotoboothSettings(), paletteStore: store);
     Assert(restored.FixedWhiteBackground.Name == "Cyan" && restored.SelectionLabel.Contains("Cyan"), "Saved fixed choice did not reload.");
     var path = Path.Combine(Path.GetTempPath(), "fixed-background-" + Guid.NewGuid() + ".json");
@@ -319,11 +320,11 @@ await Check("all 80 known-state/background combinations send exactly necessary r
     }
 });
 
-await Check("paper transitions skip closed foregrounds, open targets, and fixed background's closed motors", async () =>
+await Check("custom layer orders skip closed foregrounds, open targets, and fixed background's closed motors", async () =>
 {
     var output = new RecordingOutput();
     await using var vm = new MainViewModel(new PhotoboothSettings
-        { ActivationMilliseconds = 20, CurtainOrderFrontToBack = [4, 3, 2, 1] }, Create(output));
+        { ActivationMilliseconds = 20, CurtainOrderFrontToBack = [4, 3, 1, 2] }, Create(output));
     vm.EnterUserModeCommand.Execute(null);
     async Task Apply(int id, params int[] expected)
     {
@@ -382,7 +383,7 @@ await Check("RAZR I remaps colors and sends all five paper sequences in order", 
         }
         Assert(energized is null && actual.SequenceEqual(channels), $"{color} sent wrong relay sequence.");
     }
-    await Apply("Pink", 1);
+    await Apply("Pink", 8, 6, 4, 1);
     await Apply("Purple", 7);
     await vm.SelectCurtainCommand.ExecuteAsync(vm.BackgroundOptions.Single(c => c.Id == 2));
     Assert(vm.CanStart, "Draft not staged before changing order.");
@@ -400,11 +401,11 @@ await Check("RAZR I remaps colors and sends all five paper sequences in order", 
     Assert(vm.BackgroundOptions.Select(c => c.Id).SequenceEqual(new[] { 0, 4, 3, 2, 1 })
         && vm.BackgroundOptions.Select(c => c.Name).SequenceEqual(colors), "Reversal changed color positions or assigned wrong motors.");
     vm.CurtainSettings.CancelCommand.Execute(null);
-    await Apply("Pink", 8, 5, 3, 1);
-    await Apply("Sky Blue", 6, 3, 1);
-    await Apply("Green", 4, 1);
+    await Apply("Pink", 2, 4, 6, 7);
+    await Apply("Sky Blue", 2, 4, 5);
+    await Apply("Green", 2, 3);
     await Apply("Purple", 1);
-    Assert(!vm.CanStart && vm.Curtains[0].CommandStatus == "Unknown", "Purple was rerunnable or R1 was treated as known physical state.");
+    Assert(!vm.CanStart && vm.Curtains[0].CommandStatus == "Opened", "Purple was rerunnable or its completed open command was not recorded.");
     await Apply("Purple");
     await using (var restored = new MainViewModel(new PhotoboothSettings(), paletteStore: palette, razrStore: razr))
     {
@@ -412,13 +413,13 @@ await Check("RAZR I remaps colors and sends all five paper sequences in order", 
             && restored.BackgroundOptions[4] is { Id: 1, Name: "Purple", IsSelected: true },
             "Reopen did not restore the order, mapping or saved color.");
     }
-    await Apply("White", 1, 3, 5, 7);
+    await Apply("White", 2, 4, 6, 8);
     vm.OpenSettingsCommand.Execute(null);
     beforeSave = output.Events.Count;
     vm.CurtainSettings.SelectedRelayOrder = vm.CurtainSettings.RelayOrders.Single(o => o.FrontToBack.SequenceEqual(new[] { 4, 3, 2, 1 }));
     vm.CurtainSettings.SaveCommand.Execute(null);
-    Assert(output.Events.Count == beforeSave && vm.BackgroundOptions.All(c => !c.IsSelected),
-        "Changing back pulsed relays or treated the paper sequence as a confirmed background.");
+    Assert(output.Events.Count == beforeSave && vm.FixedWhiteBackground.IsSelected,
+        "Changing back pulsed relays or lost the completed White state.");
     Assert(vm.BackgroundOptions.Select(c => c.Id).SequenceEqual(new[] { 0, 1, 2, 3, 4 }) && vm.BackgroundOptions.Select(c => c.Name).SequenceEqual(colors),
         "Changing back did not restore the original pairs with the same color positions.");
     vm.CurtainSettings.CancelCommand.Execute(null);
@@ -447,10 +448,10 @@ await Check("stopping a RAZR I paper sequence releases the relay and leaves the 
     Assert(vm.CanStart && !output.Events.Any(e => e.On), "White could not be staged from the simulated startup state.");
     await vm.SelectCurtainCommand.ExecuteAsync(vm.BackgroundOptions.Single(c => c.Name == "Pink"));
     var running = vm.StartBackgroundCommand.ExecuteAsync(null);
-    await output.WaitForOn(8);
+    await output.WaitForOn(2);
     vm.StopCommand.Execute(null);
     await running;
-    Assert(output.AllOff && output.Events.Where(e => e.On).Select(e => e.Channel).SequenceEqual(new[] { 8 })
+    Assert(output.AllOff && output.Events.Where(e => e.On).Select(e => e.Channel).SequenceEqual(new[] { 2 })
         && vm.CanStart && vm.BackgroundOptions.Single(c => c.Name == "Pink").IsSelected,
         "Stopping did not abort and release the paper sequence or prevented retry.");
 });

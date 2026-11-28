@@ -1402,3 +1402,12 @@ noninteractive sudo or stop before app closure. Devices on 0.12.6 can bootstrap
 with a compatible small patch. Debug/Release and ARM32 Buster/ARM64 cross-
 publishes passed, as did 64 Python tests including a full app swap, preserved
 settings, cache cleanup and pre-handoff refusal. No physical Pi test or release.
+
+2026-11-28 corrected the relay sequences for both saved nearest-layer presets.
+R7/R8 nearest keeps Pink through Purple on pairs R1/R2 through R7/R8. White
+sends R2/R4/R6/R8 in order, including when individual curtains are already marked
+closed. Colored scenes close foreground layers in camera order, then open their
+target. R1/R2 nearest retains reversed assignments and uses the same rule with
+its own layer order. RAZR I and RAZR 3 share this behavior. Debug/Release and all
+108 host checks passed, including exact order, release between pulses, Stop, and
+RAZR 3 settling. Physical Pi operation has not been verified. No release yet.

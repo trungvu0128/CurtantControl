@@ -12,15 +12,6 @@ public sealed record CurtainCommandUpdate(int Curtain, CurtainCommandState State
 /// <summary>Closes layers in front of the selected curtain before opening it.</summary>
 public sealed class BackgroundController
 {
-    // Indexed by physical motor ID. Row 0 is the fixed background.
-    private static readonly int[][] PaperRelaySequences =
-    [
-        [1, 3, 5, 7],
-        [1],
-        [4, 1],
-        [6, 3, 1],
-        [8, 5, 3, 1]
-    ];
     private readonly CurtainRelayController _relays;
     private readonly int[] _frontToBack;
     private readonly TimeSpan _activation;
@@ -63,14 +54,20 @@ public sealed class BackgroundController
     private async Task ApplyPaperSequenceAsync(int curtain, CancellationToken cancellationToken,
         Action<CurtainCommandUpdate> report, Action<int> reportRelay)
     {
-        if (curtain < 0 || curtain >= PaperRelaySequences.Length)
+        var index = Array.IndexOf(_frontToBack, curtain);
+        if (curtain != 0 && index < 0)
             throw new ArgumentOutOfRangeException(nameof(curtain));
-        foreach (var relay in PaperRelaySequences[curtain])
+        // White closes all motors in relay-number order. Color scenes close
+        // foreground layers in camera order before opening their target.
+        var sequence = curtain == 0
+            ? _frontToBack.Order().Select(id => id * 2)
+            : _frontToBack.Take(index).Select(id => id * 2).Append(curtain * 2 - 1);
+        foreach (var relay in sequence)
         {
             var motor = (relay + 1) / 2;
             var open = relay % 2 == 1;
-            // The sheet gives pulses, and R1 is shared by the White and Purple rows.
-            await PulseAsync(motor, open, CurtainCommandState.Unknown, cancellationToken, update =>
+            var completed = open ? CurtainCommandState.Opened : CurtainCommandState.Closed;
+            await PulseAsync(motor, open, completed, cancellationToken, update =>
             {
                 report(update);
                 if (update.State is CurtainCommandState.Opening or CurtainCommandState.Closing) reportRelay(relay);

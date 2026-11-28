@@ -53,7 +53,10 @@ internal static class Razr3Checks
                 vm.EnterDeveloperModeCommand.Execute(null);
                 foreach (var id in order) await Apply(vm, id);
                 await Apply(vm, 0);
-                var expected = order.SelectMany(id => new[] { id * 2 - 1, id * 2 });
+                var expected = reverse
+                    ? order.SelectMany((id, index) => order.Take(index).Select(foreground => foreground * 2).Append(id * 2 - 1))
+                        .Concat([2, 4, 6, 8])
+                    : order.SelectMany(id => new[] { id * 2 - 1, id * 2 });
                 assert(output.Events.Where(e => e.On).Select(e => e.Channel).SequenceEqual(expected) && motor.Angles.SequenceEqual([180d]), "Wrong open/close IDs or order across the five backgrounds.");
             }
         });
@@ -89,15 +92,15 @@ internal static class Razr3Checks
             }
 
             var start = Stopwatch.GetTimestamp();
-            await VerifyPulses(1, 8, 5, 3, 1);
+            await VerifyPulses(1, 2, 4, 6, 7);
             assert(Stopwatch.GetElapsedTime(start, output.Events.First(e => e.On).Timestamp) >= TimeSpan.FromMilliseconds(70),
                 "The first paper pulse ran before Room 1 settled.");
-            assert(vm.ActivityLog.Any(item => item.Contains("RAZR 3 · Sky Blue · sending R8 pulse", StringComparison.Ordinal)),
+            assert(vm.ActivityLog.Any(item => item.Contains("RAZR 3 · Sky Blue · sending R2 pulse", StringComparison.Ordinal)),
                 "The paper pulse log used the wrong backdrop name.");
-            await VerifyPulses(2, 6, 3, 1);
-            await VerifyPulses(3, 4, 1);
+            await VerifyPulses(2, 2, 4, 5);
+            await VerifyPulses(3, 2, 3);
             await VerifyPulses(4, 1);
-            await VerifyPulses(0, 1, 3, 5, 7);
+            await VerifyPulses(0, 2, 4, 6, 8);
             await VerifyPulses(0);
             assert(motor.Angles.SequenceEqual([70d, 180d]), "Indoor paper sequences resent the settled camera angle.");
         });

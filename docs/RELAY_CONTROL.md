@@ -184,29 +184,27 @@ configurations and custom permutations are shown as a current setup until the
 operator selects a preset and saves.
 
 Physical motor command states stay with their relay pairs. The highlight is
-recalculated after Save. In the regular profile, White closes any motor that is
-open or has an unconfirmed state. RAZR 3 shares the preset and stores its
-backdrop colors separately.
+recalculated after Save. RAZR 3 shares the preset and stores its backdrop colors
+separately.
 
 ### Shared paper relay sequence
 
-The R1/R2-nearest preset with reversed assignments runs the same sequence for
-each backdrop slot in RAZR I and RAZR 3. The models save their colors separately.
-RAZR 3 sends indoor pulses after the camera settles in Room 1. Open landscape
-only moves the camera.
+Select **R7/R8 nearest** for the wiring with Pink on R1/R2 and Purple on R7/R8.
+RAZR I and RAZR 3 run the same relay sequence by backdrop slot. RAZR 3 sends
+indoor pulses after the camera settles in Room 1. Open landscape only moves the
+camera.
 
-| RAZR I default | RAZR 3 default | Relay pulses in order |
-| --- | --- | --- |
-| White | White | R1 → R3 → R5 → R7 |
-| Pink | Sky Blue | R8 → R5 → R3 → R1 |
-| Sky Blue | Green | R6 → R3 → R1 |
-| Green | Purple | R4 → R1 |
-| Purple | Gray | R1 |
+| RAZR I default | RAZR 3 default | R7/R8 nearest | R1/R2 nearest with reversed assignments |
+| --- | --- | --- | --- |
+| White | White | R2 → R4 → R6 → R8 | R2 → R4 → R6 → R8 |
+| Pink | Sky Blue | R8 → R6 → R4 → R1 | R2 → R4 → R6 → R7 |
+| Sky Blue | Green | R8 → R6 → R3 | R2 → R4 → R5 |
+| Green | Purple | R8 → R5 | R2 → R3 |
+| Purple | Gray | R7 | R1 |
 
-Each started sequence sends its complete row. The controller releases each relay
-before starting the next and cancels the remaining pulses on Stop or error. The
-application records successful sequence completion for the repeat-selection guard.
-Touched motor positions stay Unknown in the shared relay history. In particular,
-R1 appears in the fixed and fourth motorized slots. A completed R1 pulse does
-not establish which backdrop is visible. The regular profile continues using
-the state-aware foreground planner. RAZR II uses its camera-position commands.
+Each started sequence sends its complete row even if a foreground curtain is
+already marked closed. The controller releases each relay before starting the
+next and cancels the remaining pulses on Stop or error. The application records
+successful commands and sequence completion for the repeat-selection guard.
+Legacy and custom mappings outside these presets use the state-aware foreground
+planner. RAZR II uses its camera-position commands.

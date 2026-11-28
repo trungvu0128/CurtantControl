@@ -114,8 +114,8 @@ by these source changes.
    and travel limits take precedence. Check the backdrop assignments against the booth.
    The default button order is White, Sky Blue, Green, Purple and Gray. Save
    the relay preset in RAZR I Developer Settings to set relay assignments and
-   sequence for both models. Under R1/R2 nearest, the four color slots follow
-   the [shared paper relay sequence](RELAY_CONTROL.md#shared-paper-relay-sequence).
+   sequence for both models. Both presets follow the
+   [shared paper relay sequence](RELAY_CONTROL.md#shared-paper-relay-sequence).
    RAZR 3 Settings shows the current relay pairs and saves its own backdrop colors.
 3. For hardware operation, set `SimulateRelays` to `false` in `photobooth.json`
    using the verified polarity and eight BCM pins. Reserve GPIO2/3 for I²C and
